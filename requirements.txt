@@ -1,0 +1,11 @@
+catboost
+numpy
+pandas
+scikit-learn
+jupyter
+matplotlib
+seaborn
+plotly
+torch
+torch-summary
+torchvision
