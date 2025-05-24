@@ -99,4 +99,8 @@ print(f"\nTest Accuracy: {test_acc:.4f}")
 print(f"Test Precision: {test_precision:.4f}")
 print(f"Test Recall: {test_recall:.4f}")
 print(f"Test F1 Score: {test_f1:.4f}")
-# %%
+
+# Test Accuracy: 0.8513
+# Test Precision: 0.5732
+# Test Recall: 0.1999
+# Test F1 Score: 0.2965
