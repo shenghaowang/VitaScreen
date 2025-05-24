@@ -69,9 +69,9 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(X_train_val)):
 
     y_pred = model.predict(X_val)
     acc = accuracy_score(y_val, y_pred)
-    precision = precision_score(y_val, y_pred, average='weighted')
-    recall = recall_score(y_val, y_pred, average='weighted')
-    f1 = f1_score(y_val, y_pred, average='weighted')
+    precision = precision_score(y_val, y_pred, average='binary')
+    recall = recall_score(y_val, y_pred, average='binary')
+    f1 = f1_score(y_val, y_pred, average='binary')
     fold_accuracies.append(acc)
     fold_precisions.append(precision)
     fold_recalls.append(recall)
@@ -92,11 +92,15 @@ print(f"Average F1 Score: {np.mean(fold_f1s):.4f} ± {np.std(fold_f1s):.4f}")
 # Evaluate on the test set
 y_pred = model.predict(X_test)
 test_acc = accuracy_score(y_test, y_pred)
-test_precision = precision_score(y_test, y_pred, average='weighted')
-test_recall = recall_score(y_test, y_pred, average='weighted')
-test_f1 = f1_score(y_test, y_pred, average='weighted')
+test_precision = precision_score(y_test, y_pred, average='binary')
+test_recall = recall_score(y_test, y_pred, average='binary')
+test_f1 = f1_score(y_test, y_pred, average='binary')
 print(f"\nTest Accuracy: {test_acc:.4f}")
 print(f"Test Precision: {test_precision:.4f}")
 print(f"Test Recall: {test_recall:.4f}")
 print(f"Test F1 Score: {test_f1:.4f}")
-# %%
+
+# Test Accuracy: 0.8513
+# Test Precision: 0.5732
+# Test Recall: 0.1999
+# Test F1 Score: 0.2965
