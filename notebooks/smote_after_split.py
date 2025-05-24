@@ -27,7 +27,7 @@ X.shape, y.shape
 # %%
 # Split the data into training and test sets
 X_train_val, X_test, y_train_val, y_test = train_test_split(
-    X, y, test_size=0.3, random_state=42
+    X, y, test_size=0.2, random_state=42
 )
 X_train_val.shape, y_train_val.shape, X_test.shape, y_test.shape
 
@@ -57,11 +57,12 @@ early_stopping_rounds = 50
 
 model = CatBoostClassifier(
     iterations=1000,
-    learning_rate=0.1,
-    depth=6,
+    learning_rate=0.01,
+    max_depth=10,
     verbose=0,
     random_seed=random_state,
-    eval_metric='Accuracy'
+    # eval_metric='Accuracy'
+    eval_metric='AUC'
 )
 
 model.fit(
@@ -80,6 +81,11 @@ print(f"Validation Precision: {precision:.4f}")
 print(f"Validation Recall: {recall:.4f}")
 print(f"Validation F1 Score: {f1:.4f}")
 
+# Validation Accuracy: 0.9098
+# Validation Precision: 0.9666
+# Validation Recall: 0.8485
+# Validation F1 Score: 0.9037
+
 # %%
 # Evaluate on the test set
 y_pred = model.predict(X_test)
@@ -92,7 +98,7 @@ print(f"Test Precision: {test_precision:.4f}")
 print(f"Test Recall: {test_recall:.4f}")
 print(f"Test F1 Score: {test_f1:.4f}")
 
-# Test Accuracy: 0.8516
-# Test Precision: 0.5700
-# Test Recall: 0.2150
-# Test F1 Score: 0.3123
+# Test Accuracy: 0.8531
+# Test Precision: 0.5785
+# Test Recall: 0.2260
+# Test F1 Score: 0.3251
