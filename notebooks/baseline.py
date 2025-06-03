@@ -1,9 +1,11 @@
 # %%
 from catboost import CatBoostClassifier, Pool
 from sklearn.model_selection import KFold, train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
 import numpy as np
 import pandas as pd
+
+from utils import compute_metrics
 
 # %%
 # Load the dataset
@@ -91,16 +93,12 @@ print(f"Average F1 Score: {np.mean(fold_f1s):.4f} ± {np.std(fold_f1s):.4f}")
 # %%
 # Evaluate on the test set
 y_pred = model.predict(X_test)
-test_acc = accuracy_score(y_test, y_pred)
-test_precision = precision_score(y_test, y_pred, average='binary')
-test_recall = recall_score(y_test, y_pred, average='binary')
-test_f1 = f1_score(y_test, y_pred, average='binary')
-print(f"\nTest Accuracy: {test_acc:.4f}")
-print(f"Test Precision: {test_precision:.4f}")
-print(f"Test Recall: {test_recall:.4f}")
-print(f"Test F1 Score: {test_f1:.4f}")
+print(confusion_matrix(y_test, y_pred))
 
-# Test Accuracy: 0.8513
-# Test Precision: 0.5732
-# Test Recall: 0.1999
-# Test F1 Score: 0.2965
+# %%
+# Compute metrics for the test set
+avg_options = ['micro', 'macro', 'weighted', 'binary']
+
+results = [compute_metrics(y_test, y_pred, avg) for avg in avg_options]
+results_df = pd.DataFrame(results)
+results_df.to_csv("results.csv", index=False)
