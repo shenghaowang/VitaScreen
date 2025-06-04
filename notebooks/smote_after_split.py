@@ -2,8 +2,9 @@
 from catboost import CatBoostClassifier, Pool
 from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import pandas as pd
+
+from utils import compute_metrics
 
 # %%
 # Load the dataset
@@ -70,35 +71,23 @@ model.fit(
 )
 
 y_pred = model.predict(X_val)
-acc = accuracy_score(y_val, y_pred)
-precision = precision_score(y_val, y_pred, average='binary')
-recall = recall_score(y_val, y_pred, average='binary')
-f1 = f1_score(y_val, y_pred, average='binary')
+val_metrics = compute_metrics(y_val, y_pred, avg_option='binary')
 
+print(f"Validation Accuracy: {val_metrics['accuracy']:.4f}")
+print(f"Validation Precision: {val_metrics['precision']:.4f}")
+print(f"Validation Recall: {val_metrics['recall']:.4f}")
+print(f"Validation F1 Score: {val_metrics['f1_score']:.4f}")
 
-print(f"Validation Accuracy: {acc:.4f}")
-print(f"Validation Precision: {precision:.4f}")
-print(f"Validation Recall: {recall:.4f}")
-print(f"Validation F1 Score: {f1:.4f}")
-
-# Validation Accuracy: 0.9098
-# Validation Precision: 0.9666
-# Validation Recall: 0.8485
-# Validation F1 Score: 0.9037
+# Validation Accuracy: 0.9061
+# Validation Precision: 0.9621
+# Validation Recall: 0.8451
+# Validation F1 Score: 0.8998
 
 # %%
 # Evaluate on the test set
 y_pred = model.predict(X_test)
-test_acc = accuracy_score(y_test, y_pred)
-test_precision = precision_score(y_test, y_pred, average='binary')
-test_recall = recall_score(y_test, y_pred, average='binary')
-test_f1 = f1_score(y_test, y_pred, average='binary')
-print(f"\nTest Accuracy: {test_acc:.4f}")
-print(f"Test Precision: {test_precision:.4f}")
-print(f"Test Recall: {test_recall:.4f}")
-print(f"Test F1 Score: {test_f1:.4f}")
+avg_options = ['micro', 'macro', 'weighted', 'binary']
 
-# Test Accuracy: 0.8531
-# Test Precision: 0.5785
-# Test Recall: 0.2260
-# Test F1 Score: 0.3251
+results = [compute_metrics(y_test, y_pred, avg) for avg in avg_options]
+results_df = pd.DataFrame(results)
+results_df.to_csv("results.csv", index=False)

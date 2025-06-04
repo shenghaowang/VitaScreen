@@ -1,7 +1,7 @@
 # %%
 from catboost import CatBoostClassifier, Pool
 from sklearn.model_selection import KFold, train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, f1_score
+from sklearn.metrics import confusion_matrix
 import numpy as np
 import pandas as pd
 
@@ -70,19 +70,16 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(X_train_val)):
     model.fit(train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds)
 
     y_pred = model.predict(X_val)
-    acc = accuracy_score(y_val, y_pred)
-    precision = precision_score(y_val, y_pred, average='binary')
-    recall = recall_score(y_val, y_pred, average='binary')
-    f1 = f1_score(y_val, y_pred, average='binary')
-    fold_accuracies.append(acc)
-    fold_precisions.append(precision)
-    fold_recalls.append(recall)
-    fold_f1s.append(f1)
+    val_metrics = compute_metrics(y_val, y_pred, avg_option='binary')
+    fold_accuracies.append(val_metrics['accuracy'])
+    fold_precisions.append(val_metrics['precision'])
+    fold_recalls.append(val_metrics['recall'])
+    fold_f1s.append(val_metrics['f1_score'])
 
-    print(f"Fold {fold + 1} Accuracy: {acc:.4f}")
-    print(f"Fold {fold + 1} Precision: {precision:.4f}")
-    print(f"Fold {fold + 1} Recall: {recall:.4f}")
-    print(f"Fold {fold + 1} F1 Score: {f1:.4f}")
+    print(f"Fold {fold + 1} Accuracy: {val_metrics['accuracy']:.4f}")
+    print(f"Fold {fold + 1} Precision: {val_metrics['precision']:.4f}")
+    print(f"Fold {fold + 1} Recall: {val_metrics['recall']:.4f}")
+    print(f"Fold {fold + 1} F1 Score: {val_metrics['f1_score']:.4f}")
 
 # ---- Summary ----
 print(f"\nAverage Accuracy: {np.mean(fold_accuracies):.4f} ± {np.std(fold_accuracies):.4f}")
