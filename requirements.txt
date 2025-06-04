@@ -1,4 +1,5 @@
 catboost
+ctgan
 imblearn
 lightgbm
 numpy
