@@ -10,6 +10,7 @@ matplotlib
 seaborn
 plotly
 pytorch-lightning
+pytest
 torch
 torch-summary
 torchvision
