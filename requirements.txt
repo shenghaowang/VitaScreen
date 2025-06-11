@@ -13,5 +13,6 @@ plotly
 pytorch-lightning
 pytest
 torch
+torchinfo
 torch-summary
 torchvision
