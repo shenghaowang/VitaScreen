@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from data.cdc import nctd_transform
+from data.transform import nctd_transform
 
 
 def test_nctd_transform():
