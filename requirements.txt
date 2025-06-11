@@ -2,6 +2,7 @@ catboost
 ctgan
 imblearn
 lightgbm
+loguru
 numpy
 pandas
 scikit-learn
