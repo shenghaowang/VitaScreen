@@ -2,6 +2,7 @@ catboost
 ctgan
 imblearn
 lightgbm
+loguru
 numpy
 pandas
 scikit-learn
@@ -10,6 +11,8 @@ matplotlib
 seaborn
 plotly
 pytorch-lightning
+pytest
 torch
+torchinfo
 torch-summary
 torchvision
