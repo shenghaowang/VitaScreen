@@ -24,8 +24,8 @@ def main():
         data_file=Path("data/cdcNormalDiabetic.csv"),
         target_col="Label",
     )
-    # dm.setup(transform=nctd_transform, downsample=True)
-    dm.setup(transform=nctd_transform)
+    dm.setup(transform=nctd_transform, downsample=True)
+    # dm.setup(transform=nctd_transform)
 
     # Init CNN model
     logger.info("Initializing NCTDConvNet model...")
@@ -63,12 +63,13 @@ def main():
     )
     classifier = DiabetesRiskClassifier(model=model, batch_size=64)
     trainer = pl.Trainer(
-        max_epochs=5,
+        max_epochs=30,
         accelerator="mps",
         devices=1,
         enable_progress_bar=True,
         log_every_n_steps=50,  # or higher
         enable_model_summary=False,  # optional
+        # callbacks=[metrics_logger]
         callbacks=[metrics_logger, early_stop_callback, checkpoint_callback],
     )
 
@@ -89,26 +90,25 @@ def main():
     output = trainer.test(classifier, dm.test_dataloader())
     logger.debug(f"Test output: {output}")
 
+    model.eval()
+    y_pred = []
+    y_test = []
 
-    # model.eval()
-    # y_pred = []
-    # y_test = []
+    with torch.no_grad():
+        for x, y in dm.test_dataloader():
 
-    # with torch.no_grad():
-    #     for x, y in dm.test_dataloader():
+            logits = model(x)            # [B, 1]
+            probs = torch.sigmoid(logits)
+            preds = (probs > 0.5).long().squeeze()
 
-    #         logits = model(x)            # [B, 1]
-    #         probs = torch.sigmoid(logits)
-    #         preds = (probs > 0.5).long().squeeze()
-
-    #         y_pred.extend(preds.cpu().numpy())
-    #         y_test.extend(y.cpu().numpy())
+            y_pred.extend(preds.cpu().numpy())
+            y_test.extend(y.cpu().numpy())
     
-    # avg_options = ['micro', 'macro', 'weighted', 'binary']
+    avg_options = ['micro', 'macro', 'weighted', 'binary']
 
-    # results = [compute_metrics(y_test, y_pred, avg) for avg in avg_options]
-    # results_df = pd.DataFrame(results)
-    # results_df.to_csv("results.csv", index=False)
+    results = [compute_metrics(y_test, y_pred, avg) for avg in avg_options]
+    results_df = pd.DataFrame(results)
+    results_df.to_csv("results.csv", index=False)
 
 # binary,0.8517226426994638,0.6291718170580964,0.12819544138017883,0.21299299089862955
 # binary,0.8511313465783664,0.5647530040053405,0.21307140158670193,0.3094084300996617    
