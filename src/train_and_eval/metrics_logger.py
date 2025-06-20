@@ -29,22 +29,6 @@ class MetricsLogger(Callback):
 
         if val_f1 is not None:
             self.val_accs.append(val_f1.item())
-
-        # Optionally, print metrics for each epoch
-        # if train_loss is not None and val_loss is not None:
-        #     logger.debug(
-        #         f"Epoch {trainer.current_epoch}: train_loss={train_loss:.4f}, val_loss={val_loss:.4f}"
-        #     )
-        #     print(
-        #         f"Epoch {trainer.current_epoch}: "
-        #         f"train_loss={train_loss:.4f} | val_loss={val_loss:.4f} | "
-        #         f"train_f1={train_f1:.3f} | val_f1={val_f1:.3f}"
-        #     )
-
-        # if train_f1 is not None and val_f1 is not None:
-        #     logger.debug(
-        #         f"Epoch {trainer.current_epoch}: train_acc={train_acc:.4f}, val_acc={val_acc:.4f}"
-        #     )
         
         train_loss_str = f"{train_loss:.4f}" if train_loss is not None else "N/A"
         val_loss_str = f"{val_loss:.4f}" if val_loss is not None else "N/A"
