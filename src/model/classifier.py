@@ -5,11 +5,13 @@ import torchmetrics
 
 
 class DiabetesRiskClassifier(pl.LightningModule):
-    def __init__(self, model, batch_size: int):
+    def __init__(self, model, batch_size: int, pos_weight: float = None):
         super(DiabetesRiskClassifier, self).__init__()
         self.save_hyperparameters()
         self.model = model
-        self.loss_fn = nn.BCEWithLogitsLoss()
+        if  pos_weight is not None:
+            pos_weight = torch.tensor(pos_weight, dtype=torch.float32)
+        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
         self.f1 = torchmetrics.classification.BinaryF1Score()
         self.batch_size = batch_size
 
@@ -21,7 +23,7 @@ class DiabetesRiskClassifier(pl.LightningModule):
         y_hat = self.forward(x).squeeze()  # Remove extra dimensions
         loss = self.loss_fn(y_hat, y)
         self.log(
-            'train_loss_epoch',
+            'train_loss',
             loss,
             on_step=False,
             on_epoch=True,
@@ -67,5 +69,25 @@ class DiabetesRiskClassifier(pl.LightningModule):
         self.log('test_loss', loss)
         self.log('test_f1', self.f1(y_hat, y.float()), prog_bar=True)
 
+    # def configure_optimizers(self):
+    #     return torch.optim.Adam(self.parameters(), lr=8e-4)
+
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=8e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=8e-4)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",  # because we want to minimize val_loss
+            factor=0.5,  # reduce LR by half
+            patience=2,  # wait 2 epochs with no improvement
+            # verbose=True,
+        )
+
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "monitor": "val_loss",  # name must match what you log
+                "interval": "epoch",
+                "frequency": 1,
+            },
+        }
