@@ -1,5 +1,7 @@
 from pathlib import Path
 from typing import Callable
+from PIL import Image
+from typing import Tuple
 
 from loguru import logger
 from imblearn.under_sampling import EditedNearestNeighbours
@@ -9,7 +11,8 @@ import pytorch_lightning as pl
 import torch
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, Subset
+from torchvision import transforms
 
 
 class CDCDataset(Dataset):
@@ -97,3 +100,90 @@ class CDCDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False)
+
+
+class IGTDTransformedCDCDataset(Dataset):
+    def __init__(self, img_dir: Path, labels: pd.Series):
+        self.img_dir = img_dir
+        self.img_files = sorted(img_dir.glob("*_image.png"))
+
+        # Extract indices from filenames like _123_image.png
+        self.indices = [
+            int(f.name.split("_")[1]) for f in self.img_files
+        ]
+
+        logger.debug(f"Found {len(self.img_files)} images in {self.img_dir}")
+        logger.debug(f"Number of labels: {len(labels)}")
+        assert len(labels) >= max(self.indices) + 1, \
+            "Label series does not cover all image indices"
+
+        self.labels = labels
+        self.transform = transforms.Compose([
+            transforms.Grayscale(num_output_channels=1),
+            transforms.ToTensor()
+        ])
+
+    def __len__(self):
+        return len(self.img_files)
+
+    def __getitem__(self, idx) -> Tuple[torch.Tensor, int]:
+        index = self.indices[idx]
+        x = self.transform(Image.open(self.img_files[idx]))
+        y = torch.tensor(self.labels.iloc[index], dtype=torch.float32)
+        return x, y
+
+
+class IGTDTransformedDataModule(pl.LightningDataModule):
+    def __init__(
+        self,
+        data_file: Path,
+        img_dir: Path,
+        target_col: str = "Label",
+        batch_size=64,
+        num_workers=4
+    ):
+        super().__init__()
+        self.data_file = data_file
+        self.img_dir = img_dir
+        self.target_col = target_col
+        self.batch_size = batch_size
+        self.num_workers = num_workers
+
+    def setup(self, stage=None):
+        if not self.img_dir.exists():
+            raise FileNotFoundError(f"IGTD data directory {self.img_dir} does not exist.")
+        
+        df = pd.read_csv(self.data_file)
+        train_val_idx, test_idx = train_test_split(df.index, test_size=0.1, random_state=42)
+        train_idx, val_idx = train_test_split(train_val_idx, test_size=0.2, random_state=42)
+
+        full_dataset = IGTDTransformedCDCDataset(
+            img_dir=self.img_dir, labels=df[self.target_col]
+        )
+        self.train_dataset = Subset(full_dataset, train_idx)
+        self.val_dataset = Subset(full_dataset, val_idx)
+        self.test_dataset = Subset(full_dataset, test_idx)
+
+    def train_dataloader(self):
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers
+        )
+
+    def val_dataloader(self):
+        return DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers
+        )
+
+    def test_dataloader(self):
+        return DataLoader(
+            self.test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers
+        )

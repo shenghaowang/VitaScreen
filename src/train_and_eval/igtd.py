@@ -8,7 +8,7 @@ from loguru import logger
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from torchinfo import summary
 
-from data.cdc import CDCDataModule
+from data.cdc import IGTDTransformedDataModule
 from data.transform import nctd_transform
 from model.nctd import NCTDConvNet
 from model.classifier import DiabetesRiskClassifier
@@ -20,38 +20,25 @@ def main():
     torch.manual_seed(seed=42)
 
     # Init data module
-    dm = CDCDataModule(
+    dm = IGTDTransformedDataModule(
         data_file=Path("data/cdcNormalDiabetic.csv"),
+        img_dir=Path("data/IGTD/data"),
         target_col="Label",
     )
-    # dm.setup(transform=nctd_transform, downsample=True)
-    dm.setup(transform=nctd_transform)
+    dm.setup()
 
     # Init CNN model
-    logger.info("Initializing NCTDConvNet model...")
+    logger.info("Initializing IGTD ConvNet model...")
     model = NCTDConvNet()
-    summary(model, input_size=(1, 1, 42, 42))
-
-    # dummy_input = torch.randn(8, 1, 42, 42)
-    # output = model(dummy_input)
-
-    # logger.debug(f"Output shape: {output.shape}")  # should be [8, 2]
-
-    # dataloader = dm.train_dataloader()
-    # batch = next(iter(dataloader))
-    # inputs, labels = batch
-    # logger.debug(f"Input shape: {inputs.shape}")
-    # logger.debug(f"Label shape: {labels.shape}")
+    summary(model, input_size=(1, 1, 14, 18))
 
     logger.debug(f"MPS available: {torch.backends.mps.is_available()}")
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     logger.debug(f"Current device: {device}")
 
-
     logger.info("Training the model...")
     metrics_logger = MetricsLogger()
     early_stop_callback = EarlyStopping(
-        # monitor="val_loss", min_delta=0.001, patience=3, verbose=True, mode="min"
         monitor="val_loss", min_delta=0.001, patience=5, verbose=True, mode="min"
     )
     checkpoint_callback = ModelCheckpoint(
@@ -62,7 +49,7 @@ def main():
         verbose=False,
         save_weights_only=False,  # save full model (or True for just weights)
     )
-    classifier = DiabetesRiskClassifier(model=model, batch_size=64, pos_weight=3.0)
+    classifier = DiabetesRiskClassifier(model=model, batch_size=64, pos_weight=4.0)
     trainer = pl.Trainer(
         max_epochs=30,
         accelerator="mps",
@@ -111,10 +98,6 @@ def main():
     results_df = pd.DataFrame(results)
     results_df.to_csv("results.csv", index=False)
 
-# binary,0.8517226426994638,0.6291718170580964,0.12819544138017883,0.21299299089862955
-# binary,0.8511313465783664,0.5647530040053405,0.21307140158670193,0.3094084300996617    
-# binary,0.8138796909492274,0.4271156832298137,0.5542123158292407,0.482433543436558
-# binary,0.7998265531378114,0.4038545012587898,0.5858204256390883,0.4781089414182939
 
 if __name__ == "__main__":
     main()
