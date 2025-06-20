@@ -24,8 +24,8 @@ def main():
         data_file=Path("data/cdcNormalDiabetic.csv"),
         target_col="Label",
     )
-    dm.setup(transform=nctd_transform, downsample=True)
-    # dm.setup(transform=nctd_transform)
+    # dm.setup(transform=nctd_transform, downsample=True)
+    dm.setup(transform=nctd_transform)
 
     # Init CNN model
     logger.info("Initializing NCTDConvNet model...")
@@ -51,7 +51,8 @@ def main():
     logger.info("Training the model...")
     metrics_logger = MetricsLogger()
     early_stop_callback = EarlyStopping(
-        monitor="val_loss", min_delta=0.001, patience=3, verbose=True, mode="min"
+        # monitor="val_loss", min_delta=0.001, patience=3, verbose=True, mode="min"
+        monitor="val_loss", min_delta=0.001, patience=5, verbose=True, mode="min"
     )
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",  # same metric as EarlyStopping
@@ -61,7 +62,7 @@ def main():
         verbose=False,
         save_weights_only=False,  # save full model (or True for just weights)
     )
-    classifier = DiabetesRiskClassifier(model=model, batch_size=64)
+    classifier = DiabetesRiskClassifier(model=model, batch_size=64, pos_weight=3.0)
     trainer = pl.Trainer(
         max_epochs=30,
         accelerator="mps",
