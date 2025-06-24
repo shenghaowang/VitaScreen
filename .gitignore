@@ -176,5 +176,7 @@ cython_debug/
 **/catboost_info/
 data/
 !src/data/
-lighting_logs/
-outputs/    # hydra outputs
+lightning_logs/
+
+# Hydra outputs
+outputs/
