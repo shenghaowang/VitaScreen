@@ -10,8 +10,8 @@ from torchinfo import summary
 
 from data.cdc import CDCDataModule
 from data.transform import nctd_transform
-from model.cnn import ConvNet
 from model.classifier import DiabetesRiskClassifier
+from model.cnn import ConvNet
 from train_and_eval.evaluate import compute_metrics
 from train_and_eval.metrics_logger import MetricsLogger
 
@@ -47,12 +47,15 @@ def main():
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     logger.debug(f"Current device: {device}")
 
-
     logger.info("Training the model...")
     metrics_logger = MetricsLogger()
     early_stop_callback = EarlyStopping(
         # monitor="val_loss", min_delta=0.001, patience=3, verbose=True, mode="min"
-        monitor="val_loss", min_delta=0.001, patience=5, verbose=True, mode="min"
+        monitor="val_loss",
+        min_delta=0.001,
+        patience=5,
+        verbose=True,
+        mode="min",
     )
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",  # same metric as EarlyStopping
@@ -98,21 +101,22 @@ def main():
     with torch.no_grad():
         for x, y in dm.test_dataloader():
 
-            logits = model(x)            # [B, 1]
+            logits = model(x)  # [B, 1]
             probs = torch.sigmoid(logits)
             preds = (probs > 0.5).long().squeeze()
 
             y_pred.extend(preds.cpu().numpy())
             y_test.extend(y.cpu().numpy())
-    
-    avg_options = ['micro', 'macro', 'weighted', 'binary']
+
+    avg_options = ["micro", "macro", "weighted", "binary"]
 
     results = [compute_metrics(y_test, y_pred, avg) for avg in avg_options]
     results_df = pd.DataFrame(results)
     results_df.to_csv("results.csv", index=False)
 
+
 # binary,0.8517226426994638,0.6291718170580964,0.12819544138017883,0.21299299089862955
-# binary,0.8511313465783664,0.5647530040053405,0.21307140158670193,0.3094084300996617    
+# binary,0.8511313465783664,0.5647530040053405,0.21307140158670193,0.3094084300996617
 # binary,0.8138796909492274,0.4271156832298137,0.5542123158292407,0.482433543436558
 # binary,0.7998265531378114,0.4038545012587898,0.5858204256390883,0.4781089414182939
 

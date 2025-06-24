@@ -1,14 +1,13 @@
 from pathlib import Path
-from typing import Callable
-from PIL import Image
-from typing import Tuple
+from typing import Callable, Tuple
 
-from loguru import logger
-from imblearn.under_sampling import EditedNearestNeighbours
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+from imblearn.under_sampling import EditedNearestNeighbours
+from loguru import logger
+from PIL import Image
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, Dataset, Subset
@@ -17,10 +16,7 @@ from torchvision import transforms
 
 class CDCDataset(Dataset):
     def __init__(
-        self,
-        data: np.ndarray,
-        labels: np.ndarray,
-        transform: Callable = None
+        self, data: np.ndarray, labels: np.ndarray, transform: Callable = None
     ):
 
         self.data = data
@@ -35,9 +31,9 @@ class CDCDataset(Dataset):
 
         if self.transform:
             x = self.transform(self.data[idx], n_features)
-        
+
         # logger.debug(f"Transformed data shape: {x.shape}")
-        
+
         # Add channel dimension for CNNs
         x = torch.tensor(x, dtype=torch.float32).unsqueeze(0)  # Add channel dimension
         y = torch.tensor(self.labels[idx], dtype=torch.float32)
@@ -46,25 +42,20 @@ class CDCDataset(Dataset):
 
 
 class CDCDataModule(pl.LightningDataModule):
-    def __init__(
-        self,
-        data_file: Path,
-        target_col: str,
-        batch_size: int = 64
-    ):
+    def __init__(self, data_file: Path, target_col: str, batch_size: int = 64):
         super().__init__()
         self.data_file = data_file
         self.target_col = target_col
         self.batch_size = batch_size
-    
+
     def setup(self, transform: Callable = None, downsample: bool = False):
         # Load raw data
         if not self.data_file.exists():
             raise FileNotFoundError(f"Data file {self.data_file} does not exist.")
-        
+
         df = pd.read_csv(self.data_file)
         feature_cols = [col for col in df.columns if col != self.target_col]
-        
+
         # Split data for training, validation, and testing
         X, y = df[feature_cols].values, df[self.target_col].values
         X_train_val, X_test, y_train_val, y_test = train_test_split(
@@ -75,8 +66,10 @@ class CDCDataModule(pl.LightningDataModule):
             # Resampling using Edited Nearest Neighbours
             enn = EditedNearestNeighbours()
             X_train_val, y_train_val = enn.fit_resample(X_train_val, y_train_val)
-            logger.info(f"Resampled training data shape: {X_train_val.shape}, {y_train_val.shape}")
-        
+            logger.info(
+                f"Resampled training data shape: {X_train_val.shape}, {y_train_val.shape}"
+            )
+
         X_train, X_val, y_train, y_val = train_test_split(
             X_train_val, y_train_val, test_size=0.2, random_state=42
         )
@@ -108,20 +101,18 @@ class IGTDTransformedCDCDataset(Dataset):
         self.img_files = sorted(img_dir.glob("*_image.png"))
 
         # Extract indices from filenames like _123_image.png
-        self.indices = [
-            int(f.name.split("_")[1]) for f in self.img_files
-        ]
+        self.indices = [int(f.name.split("_")[1]) for f in self.img_files]
 
         logger.debug(f"Found {len(self.img_files)} images in {self.img_dir}")
         logger.debug(f"Number of labels: {len(labels)}")
-        assert len(labels) >= max(self.indices) + 1, \
-            "Label series does not cover all image indices"
+        assert (
+            len(labels) >= max(self.indices) + 1
+        ), "Label series does not cover all image indices"
 
         self.labels = labels
-        self.transform = transforms.Compose([
-            transforms.Grayscale(num_output_channels=1),
-            transforms.ToTensor()
-        ])
+        self.transform = transforms.Compose(
+            [transforms.Grayscale(num_output_channels=1), transforms.ToTensor()]
+        )
 
     def __len__(self):
         return len(self.img_files)
@@ -140,7 +131,7 @@ class IGTDTransformedDataModule(pl.LightningDataModule):
         img_dir: Path,
         target_col: str = "Label",
         batch_size=64,
-        num_workers=4
+        num_workers=4,
     ):
         super().__init__()
         self.data_file = data_file
@@ -151,11 +142,17 @@ class IGTDTransformedDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         if not self.img_dir.exists():
-            raise FileNotFoundError(f"IGTD data directory {self.img_dir} does not exist.")
-        
+            raise FileNotFoundError(
+                f"IGTD data directory {self.img_dir} does not exist."
+            )
+
         df = pd.read_csv(self.data_file)
-        train_val_idx, test_idx = train_test_split(df.index, test_size=0.1, random_state=42)
-        train_idx, val_idx = train_test_split(train_val_idx, test_size=0.2, random_state=42)
+        train_val_idx, test_idx = train_test_split(
+            df.index, test_size=0.1, random_state=42
+        )
+        train_idx, val_idx = train_test_split(
+            train_val_idx, test_size=0.2, random_state=42
+        )
 
         full_dataset = IGTDTransformedCDCDataset(
             img_dir=self.img_dir, labels=df[self.target_col]
@@ -169,7 +166,7 @@ class IGTDTransformedDataModule(pl.LightningDataModule):
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers=self.num_workers
+            num_workers=self.num_workers,
         )
 
     def val_dataloader(self):
@@ -177,7 +174,7 @@ class IGTDTransformedDataModule(pl.LightningDataModule):
             self.val_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=self.num_workers
+            num_workers=self.num_workers,
         )
 
     def test_dataloader(self):
@@ -185,5 +182,5 @@ class IGTDTransformedDataModule(pl.LightningDataModule):
             self.test_dataset,
             batch_size=self.batch_size,
             shuffle=False,
-            num_workers=self.num_workers
+            num_workers=self.num_workers,
         )

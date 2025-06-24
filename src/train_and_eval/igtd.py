@@ -9,8 +9,8 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from torchinfo import summary
 
 from data.cdc import IGTDTransformedDataModule
-from model.cnn import ConvNet
 from model.classifier import DiabetesRiskClassifier
+from model.cnn import ConvNet
 from train_and_eval.evaluate import compute_metrics
 from train_and_eval.metrics_logger import MetricsLogger
 
@@ -84,14 +84,14 @@ def main():
     with torch.no_grad():
         for x, y in dm.test_dataloader():
 
-            logits = model(x)            # [B, 1]
+            logits = model(x)  # [B, 1]
             probs = torch.sigmoid(logits)
             preds = (probs > 0.5).long().squeeze()
 
             y_pred.extend(preds.cpu().numpy())
             y_test.extend(y.cpu().numpy())
-    
-    avg_options = ['micro', 'macro', 'weighted', 'binary']
+
+    avg_options = ["micro", "macro", "weighted", "binary"]
 
     results = [compute_metrics(y_test, y_pred, avg) for avg in avg_options]
     results_df = pd.DataFrame(results)

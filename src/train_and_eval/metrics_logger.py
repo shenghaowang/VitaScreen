@@ -1,4 +1,3 @@
-from loguru import logger
 from pytorch_lightning.callbacks import Callback
 
 
@@ -29,7 +28,7 @@ class MetricsLogger(Callback):
 
         if val_f1 is not None:
             self.val_accs.append(val_f1.item())
-        
+
         train_loss_str = f"{train_loss:.4f}" if train_loss is not None else "N/A"
         val_loss_str = f"{val_loss:.4f}" if val_loss is not None else "N/A"
         train_f1_str = f"{train_f1:.3f}" if train_f1 is not None else "N/A"

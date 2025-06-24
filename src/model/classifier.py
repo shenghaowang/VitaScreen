@@ -9,7 +9,7 @@ class DiabetesRiskClassifier(pl.LightningModule):
         super(DiabetesRiskClassifier, self).__init__()
         self.save_hyperparameters()
         self.model = model
-        if  pos_weight is not None:
+        if pos_weight is not None:
             pos_weight = torch.tensor(pos_weight, dtype=torch.float32)
         self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
         self.f1 = torchmetrics.classification.BinaryF1Score()
@@ -23,7 +23,7 @@ class DiabetesRiskClassifier(pl.LightningModule):
         y_hat = self.forward(x).squeeze()  # Remove extra dimensions
         loss = self.loss_fn(y_hat, y)
         self.log(
-            'train_loss',
+            "train_loss",
             loss,
             on_step=False,
             on_epoch=True,
@@ -31,7 +31,7 @@ class DiabetesRiskClassifier(pl.LightningModule):
             batch_size=self.batch_size,
         )
         self.log(
-            'train_f1',
+            "train_f1",
             self.f1(y_hat, y.float()),
             on_step=False,
             on_epoch=True,
@@ -43,31 +43,31 @@ class DiabetesRiskClassifier(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self.forward(x).squeeze() 
+        y_hat = self.forward(x).squeeze()
         loss = self.loss_fn(y_hat, y)
         self.log(
-            'val_loss',
+            "val_loss",
             loss,
             on_step=False,
             on_epoch=True,
             prog_bar=True,
-            batch_size=self.batch_size
+            batch_size=self.batch_size,
         )
         self.log(
-            'val_f1',
+            "val_f1",
             self.f1(y_hat, y.float()),
             on_step=False,
             on_epoch=True,
             prog_bar=True,
-            batch_size=self.batch_size
+            batch_size=self.batch_size,
         )
-    
+
     def test_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self.forward(x).squeeze()
         loss = self.loss_fn(y_hat, y)
-        self.log('test_loss', loss)
-        self.log('test_f1', self.f1(y_hat, y.float()), prog_bar=True)
+        self.log("test_loss", loss)
+        self.log("test_f1", self.f1(y_hat, y.float()), prog_bar=True)
 
     # def configure_optimizers(self):
     #     return torch.optim.Adam(self.parameters(), lr=8e-4)
