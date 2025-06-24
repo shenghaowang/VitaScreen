@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class NCTDConvNet(nn.Module):
+class ConvNet(nn.Module):
     def __init__(self):
-        super(NCTDConvNet, self).__init__()
+        super(ConvNet, self).__init__()
 
         # Convolutional layers
         self.conv0 = nn.Sequential(
