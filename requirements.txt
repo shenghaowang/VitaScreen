@@ -1,6 +1,7 @@
 astropy
 catboost
 ctgan
+hydra-core
 imblearn
 lightgbm
 loguru
