@@ -10,7 +10,7 @@ from torchinfo import summary
 
 from data.cdc import CDCDataModule
 from data.transform import nctd_transform
-from model.nctd import NCTDConvNet
+from model.cnn import ConvNet
 from model.classifier import DiabetesRiskClassifier
 from train_and_eval.evaluate import compute_metrics
 from train_and_eval.metrics_logger import MetricsLogger
@@ -29,7 +29,7 @@ def main():
 
     # Init CNN model
     logger.info("Initializing NCTDConvNet model...")
-    model = NCTDConvNet()
+    model = ConvNet()
     summary(model, input_size=(1, 1, 42, 42))
 
     # dummy_input = torch.randn(8, 1, 42, 42)

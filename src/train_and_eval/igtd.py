@@ -9,8 +9,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from torchinfo import summary
 
 from data.cdc import IGTDTransformedDataModule
-from data.transform import nctd_transform
-from model.nctd import NCTDConvNet
+from model.cnn import ConvNet
 from model.classifier import DiabetesRiskClassifier
 from train_and_eval.evaluate import compute_metrics
 from train_and_eval.metrics_logger import MetricsLogger
@@ -29,7 +28,7 @@ def main():
 
     # Init CNN model
     logger.info("Initializing IGTD ConvNet model...")
-    model = NCTDConvNet()
+    model = ConvNet()
     summary(model, input_size=(1, 1, 14, 18))
 
     logger.debug(f"MPS available: {torch.backends.mps.is_available()}")
