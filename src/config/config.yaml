@@ -1,0 +1,18 @@
+defaults:
+  - model: catboost
+
+data:
+  dir: data
+  file_path: ${data.dir}/cdcNormalDiabetic.csv
+  target_col: Label
+
+igtd:
+  nrows: 14
+  ncols: 18
+  save_image_size: 3
+  max_step: 30000
+  val_step: 300
+  fea_dist_method: "Euclidean"
+  image_dist_method: "Euclidean"
+  error: "abs"
+  output_dir: ${data.dir}/IGTD
