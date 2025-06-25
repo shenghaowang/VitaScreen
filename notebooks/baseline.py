@@ -1,10 +1,9 @@
 # %%
-from catboost import CatBoostClassifier, Pool
-from sklearn.model_selection import KFold, train_test_split
-from sklearn.metrics import confusion_matrix
 import numpy as np
 import pandas as pd
-
+from catboost import CatBoostClassifier, Pool
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import KFold, train_test_split
 from utils import compute_metrics
 
 # %%
@@ -19,15 +18,15 @@ df.head()
 df.info()
 
 # %%
-df['Label'].value_counts()
+df["Label"].value_counts()
 
 # %%
-feature_cols = [col for col in df.columns if col != 'Label']
+feature_cols = [col for col in df.columns if col != "Label"]
 print(f"Number of features: {len(feature_cols)}")
 
 # %%
 X = df[feature_cols]
-y = df['Label']
+y = df["Label"]
 
 X.shape, y.shape
 
@@ -64,17 +63,19 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(X_train_val)):
         depth=6,
         verbose=0,
         random_seed=random_state,
-        eval_metric='Accuracy'
+        eval_metric="Accuracy",
     )
 
-    model.fit(train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds)
+    model.fit(
+        train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds
+    )
 
     y_pred = model.predict(X_val)
-    val_metrics = compute_metrics(y_val, y_pred, avg_option='binary')
-    fold_accuracies.append(val_metrics['accuracy'])
-    fold_precisions.append(val_metrics['precision'])
-    fold_recalls.append(val_metrics['recall'])
-    fold_f1s.append(val_metrics['f1_score'])
+    val_metrics = compute_metrics(y_val, y_pred, avg_option="binary")
+    fold_accuracies.append(val_metrics["accuracy"])
+    fold_precisions.append(val_metrics["precision"])
+    fold_recalls.append(val_metrics["recall"])
+    fold_f1s.append(val_metrics["f1_score"])
 
     print(f"Fold {fold + 1} Accuracy: {val_metrics['accuracy']:.4f}")
     print(f"Fold {fold + 1} Precision: {val_metrics['precision']:.4f}")
@@ -82,8 +83,12 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(X_train_val)):
     print(f"Fold {fold + 1} F1 Score: {val_metrics['f1_score']:.4f}")
 
 # ---- Summary ----
-print(f"\nAverage Accuracy: {np.mean(fold_accuracies):.4f} ± {np.std(fold_accuracies):.4f}")
-print(f"Average Precision: {np.mean(fold_precisions):.4f} ± {np.std(fold_precisions):.4f}")
+print(
+    f"\nAverage Accuracy: {np.mean(fold_accuracies):.4f} ± {np.std(fold_accuracies):.4f}"
+)
+print(
+    f"Average Precision: {np.mean(fold_precisions):.4f} ± {np.std(fold_precisions):.4f}"
+)
 print(f"Average Recall: {np.mean(fold_recalls):.4f} ± {np.std(fold_recalls):.4f}")
 print(f"Average F1 Score: {np.mean(fold_f1s):.4f} ± {np.std(fold_f1s):.4f}")
 
@@ -94,7 +99,7 @@ print(confusion_matrix(y_test, y_pred))
 
 # %%
 # Compute metrics for the test set
-avg_options = ['micro', 'macro', 'weighted', 'binary']
+avg_options = ["micro", "macro", "weighted", "binary"]
 
 results = [compute_metrics(y_test, y_pred, avg) for avg in avg_options]
 results_df = pd.DataFrame(results)

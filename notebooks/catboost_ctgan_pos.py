@@ -1,10 +1,10 @@
 # %%
 import time
+
+import pandas as pd
 from catboost import CatBoostClassifier, Pool
 from ctgan import CTGAN
 from sklearn.model_selection import train_test_split
-import pandas as pd
-
 from utils import compute_metrics
 
 # %%
@@ -14,15 +14,15 @@ print(df.shape)
 print(df.columns)
 
 # %%
-df['Label'].value_counts()
+df["Label"].value_counts()
 
 # %%
-feature_cols = [col for col in df.columns if col != 'Label']
+feature_cols = [col for col in df.columns if col != "Label"]
 print(f"Number of features: {len(feature_cols)}")
 
 # %%
 X = df[feature_cols]
-y = df['Label']
+y = df["Label"]
 
 X.shape, y.shape
 
@@ -35,7 +35,7 @@ X_train_val.shape, y_train_val.shape, X_test.shape, y_test.shape
 
 # %%
 train_val_df = pd.concat([X_train_val, y_train_val], axis=1).astype(int)
-train_val_pos_df = train_val_df[train_val_df['Label'] == 1]
+train_val_pos_df = train_val_df[train_val_df["Label"] == 1]
 train_val_pos_df.shape
 
 # %%
@@ -56,16 +56,16 @@ synthetic_data = ctgan.sample(138000)
 print(f"Sampling completed in {time.time() - start_time:.2f} seconds")
 
 # %%
-synthetic_data['Label'].value_counts()
+synthetic_data["Label"].value_counts()
 
 # %%
 # Combine synthetic data with original training data
 train_val_df_combined = pd.concat([train_val_df, synthetic_data], ignore_index=True)
-train_val_df_combined['Label'].value_counts()
+train_val_df_combined["Label"].value_counts()
 
 # %%
 X_train_val_resampled = train_val_df_combined[feature_cols]
-y_train_val_resampled = train_val_df_combined['Label']
+y_train_val_resampled = train_val_df_combined["Label"]
 X_train, X_val, y_train, y_val = train_test_split(
     X_train_val_resampled, y_train_val_resampled, test_size=0.2, random_state=42
 )
@@ -85,15 +85,13 @@ model = CatBoostClassifier(
     verbose=0,
     random_seed=random_state,
     # eval_metric='Accuracy'
-    eval_metric='AUC'
+    eval_metric="AUC",
 )
 
-model.fit(
-    train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds
-)
+model.fit(train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds)
 
 y_pred = model.predict(X_val)
-val_metrics = compute_metrics(y_val, y_pred, avg_option='binary')
+val_metrics = compute_metrics(y_val, y_pred, avg_option="binary")
 
 print(f"Validation Accuracy: {val_metrics['accuracy']:.4f}")
 print(f"Validation Precision: {val_metrics['precision']:.4f}")
@@ -108,7 +106,7 @@ print(f"Validation F1 Score: {val_metrics['f1_score']:.4f}")
 # %%
 # Evaluate on the test set
 y_pred = model.predict(X_test)
-avg_options = ['micro', 'macro', 'weighted', 'binary']
+avg_options = ["micro", "macro", "weighted", "binary"]
 
 results = [compute_metrics(y_test, y_pred, avg) for avg in avg_options]
 results_df = pd.DataFrame(results)
