@@ -1,11 +1,13 @@
 # VitaScreen
 
+VitaScreen is a prototype solution designed to predict the risk of diabetes using a combination of health indicators and socioeconomic factors. It leverages patient data to enable early risk assessment and support preventive healthcare strategies.
+
 ---
 
 ## 🚀 Features
 
-- ✅ Diabetic risk prediction with tree based model and CNN
-- ✅ Transforming tabular data into 2D image data using IGTD and NCTD algorithms
+- ✅ Diabetes risk prediction with tree based model and CNN
+- ✅ Transforming tabular data into 2D images using IGTD and NCTD algorithms
 - ✅ Reproducible experiment on the CDC benchmark datasets
 - ✅ Early stopping, checkpointing, and runtime logging
 
@@ -36,7 +38,7 @@ pip install -r requirements.txt
 
 ## 📂 Dataset
 
-The [CDC dataset](https://archive.ics.uci.edu/dataset/891/cdc+diabetes+health+indicators) needs to be available in the [data](data/) folder.
+The [CDC dataset](https://archive.ics.uci.edu/dataset/891/cdc+diabetes+health+indicators) is used for this prototype. A data folder needs to be created under the project folder to store the dataset.
 
 ## Usage
 
@@ -63,5 +65,5 @@ Supported model types:
 ---
 
 ## References
-* Dataset: https://archive.ics.uci.edu/dataset/891/cdc+diabetes+health+indicators
 * [Image Generator for Tabular Data (IGTD)](https://github.com/zhuyitan/IGTD)
+* [Transforming tabular data into images via enhanced spatial relationships for CNN processing](https://www.nature.com/articles/s41598-025-01568-0)
