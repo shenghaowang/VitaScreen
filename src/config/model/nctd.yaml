@@ -1,0 +1,7 @@
+name: nctd
+
+input_dim:
+  nrows: 42
+  ncols: 42
+
+pos_weight: 3.0
