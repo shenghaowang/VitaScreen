@@ -1,9 +1,9 @@
 # %%
+import pandas as pd
 from catboost import CatBoostClassifier, Pool
 from imblearn.over_sampling import SMOTE
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-import pandas as pd
 
 # %%
 # Load the dataset
@@ -12,15 +12,15 @@ print(df.shape)
 print(df.columns)
 
 # %%
-df['Label'].value_counts()
+df["Label"].value_counts()
 
 # %%
-feature_cols = [col for col in df.columns if col != 'Label']
+feature_cols = [col for col in df.columns if col != "Label"]
 print(f"Number of features: {len(feature_cols)}")
 
 # %%
 X = df[feature_cols]
-y = df['Label']
+y = df["Label"]
 
 X.shape, y.shape
 
@@ -57,18 +57,16 @@ model = CatBoostClassifier(
     depth=6,
     verbose=0,
     random_seed=random_state,
-    eval_metric='Accuracy'
+    eval_metric="Accuracy",
 )
 
-model.fit(
-    train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds
-)
+model.fit(train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds)
 
 y_pred = model.predict(X_val)
 acc = accuracy_score(y_val, y_pred)
-precision = precision_score(y_val, y_pred, average='binary')
-recall = recall_score(y_val, y_pred, average='binary')
-f1 = f1_score(y_val, y_pred, average='binary')
+precision = precision_score(y_val, y_pred, average="binary")
+recall = recall_score(y_val, y_pred, average="binary")
+f1 = f1_score(y_val, y_pred, average="binary")
 
 
 print(f"Validation Accuracy: {acc:.4f}")
@@ -85,9 +83,9 @@ print(f"Validation F1 Score: {f1:.4f}")
 # Evaluate on the test set
 y_pred = model.predict(X_test)
 test_acc = accuracy_score(y_test, y_pred)
-test_precision = precision_score(y_test, y_pred, average='binary')
-test_recall = recall_score(y_test, y_pred, average='binary')
-test_f1 = f1_score(y_test, y_pred, average='binary')
+test_precision = precision_score(y_test, y_pred, average="binary")
+test_recall = recall_score(y_test, y_pred, average="binary")
+test_f1 = f1_score(y_test, y_pred, average="binary")
 print(f"\nTest Accuracy: {test_acc:.4f}")
 print(f"Test Precision: {test_precision:.4f}")
 print(f"Test Recall: {test_recall:.4f}")

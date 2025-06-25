@@ -1,13 +1,16 @@
 # %%
 import os
 import time
+
+import pandas as pd
+from IGTD_Functions import (
+    min_max_transform,
+    select_features_by_variation,
+    table_to_image,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PolynomialFeatures
-import pandas as pd
-
 from utils import compute_metrics
-from IGTD_Functions import min_max_transform, table_to_image, select_features_by_variation
-
 
 # %%
 # Load the dataset
@@ -16,10 +19,10 @@ print(df.shape)
 print(df.columns)
 
 # %%
-df['Label'].value_counts()
+df["Label"].value_counts()
 
 # %%
-feature_cols = [col for col in df.columns if col != 'Label']
+feature_cols = [col for col in df.columns if col != "Label"]
 print(f"Number of features: {len(feature_cols)}")
 
 # %%
@@ -36,9 +39,11 @@ print(f"Number of polynomial features: {df_poly.shape[1]}")
 # %%
 # Select features with large variations across samples
 X = df_poly[poly_feature_names]
-id = select_features_by_variation(X, variation_measure='var', num=len(poly_feature_names))
+id = select_features_by_variation(
+    X, variation_measure="var", num=len(poly_feature_names)
+)
 X = X.iloc[:, id]
-y = df['Label']
+y = df["Label"]
 
 X.shape, y.shape
 
@@ -54,16 +59,24 @@ X_norm.shape
 nrows, ncols = 14, 18
 save_image_size = 3
 max_step, val_step = 30000, 300
-fea_dist_method = 'Euclidean'
-image_dist_method = 'Euclidean'
-error = 'abs'
-result_dir = 'IGTD/Test_2'
+fea_dist_method = "Euclidean"
+image_dist_method = "Euclidean"
+error = "abs"
+result_dir = "IGTD/Test_2"
 os.makedirs(name=result_dir, exist_ok=True)
 
 start_time = time.time()
-table_to_image(X_norm, [nrows, ncols], fea_dist_method, image_dist_method, save_image_size,
-               max_step, val_step, result_dir, error)
+table_to_image(
+    X_norm,
+    [nrows, ncols],
+    fea_dist_method,
+    image_dist_method,
+    save_image_size,
+    max_step,
+    val_step,
+    result_dir,
+    error,
+)
 end_time = time.time()
 
 print(f"Training time: {(end_time - start_time):.2f} seconds")
-

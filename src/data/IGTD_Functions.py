@@ -10,6 +10,7 @@ import pandas as pd
 from astropy.stats import median_absolute_deviation
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import rankdata, spearmanr
+from tqdm import tqdm
 
 
 def select_features_by_variation(
@@ -280,7 +281,7 @@ def IGTD_absolute_error(
     t1 = time.time()
     run_time = [0]
 
-    for s in range(max_step):
+    for s in tqdm(range(max_step)):
         delta = -np.ones(num) * np.inf
 
         # randomly pick a row that has not been considered for the longest time
@@ -399,7 +400,7 @@ def IGTD_absolute_error(
             step_record[ii] = s
 
         err_record.append(err)
-        print("Step " + str(s) + " err: " + str(err))
+        # print("Step " + str(s) + " err: " + str(err))
         index_record[s + 1, :] = index.copy()
         run_time.append(time.time() - t1)
 
@@ -512,7 +513,7 @@ def IGTD_square_error(
     t1 = time.time()
     run_time = [0]
 
-    for s in range(max_step):
+    for s in tqdm(range(max_step)):
         delta = -np.ones(num) * np.inf
 
         # randomly pick a row that has not been considered for the longest time
@@ -631,7 +632,7 @@ def IGTD_square_error(
             step_record[ii] = s
 
         err_record.append(err)
-        print("Step " + str(s) + " err: " + str(err))
+        # print("Step " + str(s) + " err: " + str(err))
         index_record[s + 1, :] = index.copy()
         run_time.append(time.time() - t1)
 
@@ -890,8 +891,8 @@ def table_to_image(
         It can be either 'Euclidean' or 'Manhattan'.
     save_image_size: size of images (in inches) for saving visual results.
     max_step: the maximum number of iterations that the IGTD algorithm will run if never converges.
-    val_step: the number of iterations for determining algorithm convergence. If the error reduction rate is smaller than
-        min_gain for val_step iterations, the algorithm converges.
+    val_step: the number of iterations for determining algorithm convergence. If the error reduction rate is smaller
+        than min_gain for val_step iterations, the algorithm converges.
     normDir: a string indicating the directory to save result files.
     error: a string indicating the function to evaluate the difference between feature distance ranking and pixel
         distance ranking. 'abs' indicates the absolute function. 'squared' indicates the square function.
@@ -1165,8 +1166,8 @@ def multi_table_to_image(
         It can be either 'Euclidean' or 'Manhattan'.
     save_image_size: size of images (in inches) for saving visual results.
     max_step: the maximum number of iterations that the IGTD algorithm will run if never converges.
-    val_step: the number of iterations for determining algorithm convergence. If the error reduction rate is smaller than
-        min_gain for val_step iterations, the algorithm converges.
+    val_step: the number of iterations for determining algorithm convergence. If the error reduction rate is smaller
+        than min_gain for val_step iterations, the algorithm converges.
     normDir: a string indicating the directory to save result files.
     error: a string indicating the function to evaluate the difference between feature distance ranking and pixel
         distance ranking. 'abs' indicates the absolute function. 'squared' indicates the square function.
@@ -1194,8 +1195,8 @@ def multi_table_to_image(
     5.  error_and_runtime.png shows the change of error vs. time during the optimization process.
     6.  error_and_iteration.png shows the change of error vs. iteration during the optimization process.
     7.  optimized_feature_ranking.png shows the feature distance ranking matrix after optimization.
-    8.  data folder includes two types of image data files for each sample. The txt files are the image data in matrix format,
-        in which high values correspond to high values of features in tabular data. The png files show the
+    8.  data folder includes two types of image data files for each sample. The txt files are the image data in matrix
+        format, in which high values correspond to high values of features in tabular data. The png files show the
         visualizations of image data, in which black and white correspond to high and low values of features in
         tabular data, respectively.
     """

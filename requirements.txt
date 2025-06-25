@@ -1,6 +1,7 @@
 astropy
 catboost
 ctgan
+hydra-core
 imblearn
 lightgbm
 loguru
@@ -11,6 +12,7 @@ jupyter
 matplotlib
 seaborn
 plotly
+pre-commit
 pytorch-lightning
 pytest
 torch

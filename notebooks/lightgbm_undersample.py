@@ -1,9 +1,8 @@
 # %%
-from lightgbm import LGBMClassifier, early_stopping, log_evaluation
-from imblearn.under_sampling import RandomUnderSampler
-from sklearn.model_selection import train_test_split
 import pandas as pd
-
+from imblearn.under_sampling import RandomUnderSampler
+from lightgbm import LGBMClassifier, early_stopping, log_evaluation
+from sklearn.model_selection import train_test_split
 from utils import compute_metrics
 
 # %%
@@ -13,15 +12,15 @@ print(df.shape)
 print(df.columns)
 
 # %%
-df['Label'].value_counts()
+df["Label"].value_counts()
 
 # %%
-feature_cols = [col for col in df.columns if col != 'Label']
+feature_cols = [col for col in df.columns if col != "Label"]
 print(f"Number of features: {len(feature_cols)}")
 
 # %%
 X = df[feature_cols]
-y = df['Label']
+y = df["Label"]
 
 X.shape, y.shape
 
@@ -53,22 +52,23 @@ model = LGBMClassifier(
     learning_rate=0.01,
     max_depth=10,
     random_state=random_state,
-    objective='binary',
-    metric='binary_logloss'
+    objective="binary",
+    metric="binary_logloss",
 )
 
 model.fit(
-    X_train, y_train,
+    X_train,
+    y_train,
     eval_set=[(X_val, y_val)],
-    eval_metric='binary_logloss',
+    eval_metric="binary_logloss",
     callbacks=[
         early_stopping(stopping_rounds=early_stopping_rounds),
-        log_evaluation(period=10)  # print every 10 rounds
+        log_evaluation(period=10),  # print every 10 rounds
     ],
 )
 
 y_pred = model.predict(X_val, num_iteration=model.best_iteration_)
-val_metrics = compute_metrics(y_val, y_pred, avg_option='binary')
+val_metrics = compute_metrics(y_val, y_pred, avg_option="binary")
 
 print(f"Validation Accuracy: {val_metrics['accuracy']:.4f}")
 print(f"Validation Precision: {val_metrics['precision']:.4f}")
@@ -83,7 +83,7 @@ print(f"Validation F1 Score: {val_metrics['f1_score']:.4f}")
 # %%
 # Evaluate on the test set
 y_pred = model.predict(X_test, num_iteration=model.best_iteration_)
-avg_options = ['micro', 'macro', 'weighted', 'binary']
+avg_options = ["micro", "macro", "weighted", "binary"]
 
 results = [compute_metrics(y_test, y_pred, avg) for avg in avg_options]
 results_df = pd.DataFrame(results)

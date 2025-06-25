@@ -1,10 +1,10 @@
 # %%
-from catboost import CatBoostClassifier, Pool
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from catboost import CatBoostClassifier, Pool
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split
 
 # %%
 # Load the dataset
@@ -13,15 +13,15 @@ print(df.shape)
 print(df.columns)
 
 # %%
-df['Label'].value_counts()
+df["Label"].value_counts()
 
 # %%
-feature_cols = [col for col in df.columns if col != 'Label']
+feature_cols = [col for col in df.columns if col != "Label"]
 print(f"Number of features: {len(feature_cols)}")
 
 # %%
 X = df[feature_cols]
-y = df['Label']
+y = df["Label"]
 
 X.shape, y.shape
 
@@ -53,12 +53,10 @@ model = CatBoostClassifier(
     random_seed=random_state,
     # auto_class_weights='SqrtBalanced',  # better than 'Balanced'
     # class_weights=[1, 3],  # Adjust class weights for imbalance
-    eval_metric='AUC'
+    eval_metric="AUC",
 )
 
-model.fit(
-    train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds
-)
+model.fit(train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds)
 
 y_prob = model.predict_proba(X_val)[:, 1]
 thresholds = np.linspace(0, 1, 100)
