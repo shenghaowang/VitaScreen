@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Tuple
 
@@ -14,7 +15,7 @@ from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import transforms
 
 
-class CDCDataset(Dataset):
+class NctdCDCDataset(Dataset):
     def __init__(
         self, data: np.ndarray, labels: np.ndarray, transform: Callable = None
     ):
@@ -41,12 +42,94 @@ class CDCDataset(Dataset):
         return x, y
 
 
-class CDCDataModule(pl.LightningDataModule):
-    def __init__(self, data_file: Path, target_col: str, batch_size: int = 64):
+class IgtdCDCDataset(Dataset):
+    def __init__(self, img_dir: Path, labels: pd.Series):
+        self.img_dir = img_dir
+        self.img_files = sorted(img_dir.glob("*_image.png"))
+
+        # Extract indices from filenames like _123_image.png
+        self.indices = [int(f.name.split("_")[1]) for f in self.img_files]
+
+        logger.debug(f"Found {len(self.img_files)} images in {self.img_dir}")
+        logger.debug(f"Number of labels: {len(labels)}")
+        assert (
+            len(labels) >= max(self.indices) + 1
+        ), "Label series does not cover all image indices"
+
+        self.labels = labels
+        self.transform = transforms.Compose(
+            [transforms.Grayscale(num_output_channels=1), transforms.ToTensor()]
+        )
+
+    def __len__(self):
+        return len(self.img_files)
+
+    def __getitem__(self, idx) -> Tuple[torch.Tensor, int]:
+        index = self.indices[idx]
+        x = self.transform(Image.open(self.img_files[idx]))
+        y = torch.tensor(self.labels.iloc[index], dtype=torch.float32)
+        return x, y
+
+
+class CDCDataModule(pl.LightningDataModule, ABC):
+    def __init__(
+        self,
+        data_file: Path,
+        target_col: str,
+        batch_size: int = 64,
+        num_workers: int = 4,
+    ):
         super().__init__()
         self.data_file = data_file
         self.target_col = target_col
         self.batch_size = batch_size
+        self.num_workers = num_workers
+
+    @abstractmethod
+    def setup(self, stage: str = None, **kwargs):
+        raise NotImplementedError(
+            "The setup method must be implemented in the subclass."
+        )
+
+    def train_dataloader(self):
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+        )
+
+    def val_dataloader(self):
+        return DataLoader(
+            self.val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+        )
+
+    def test_dataloader(self):
+        return DataLoader(
+            self.test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
+        )
+
+
+class NctdDataModule(CDCDataModule):
+    def __init__(
+        self,
+        data_file: Path,
+        target_col: str,
+        batch_size: int = 64,
+        num_workers: int = 4,
+    ):
+        super().__init__(
+            data_file=data_file,
+            target_col=target_col,
+            batch_size=batch_size,
+            num_workers=num_workers,
+        )
 
     def setup(self, transform: Callable = None, downsample: bool = False):
         # Load raw data
@@ -81,50 +164,12 @@ class CDCDataModule(pl.LightningDataModule):
         X_test = scaler.transform(X_test)
 
         # Initialize datasets
-        self.train_dataset = CDCDataset(X_train, y_train, transform)
-        self.val_dataset = CDCDataset(X_val, y_val, transform)
-        self.test_dataset = CDCDataset(X_test, y_test, transform)
-
-    def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
-
-    def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
-
-    def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False)
+        self.train_dataset = NctdCDCDataset(X_train, y_train, transform)
+        self.val_dataset = NctdCDCDataset(X_val, y_val, transform)
+        self.test_dataset = NctdCDCDataset(X_test, y_test, transform)
 
 
-class IGTDTransformedCDCDataset(Dataset):
-    def __init__(self, img_dir: Path, labels: pd.Series):
-        self.img_dir = img_dir
-        self.img_files = sorted(img_dir.glob("*_image.png"))
-
-        # Extract indices from filenames like _123_image.png
-        self.indices = [int(f.name.split("_")[1]) for f in self.img_files]
-
-        logger.debug(f"Found {len(self.img_files)} images in {self.img_dir}")
-        logger.debug(f"Number of labels: {len(labels)}")
-        assert (
-            len(labels) >= max(self.indices) + 1
-        ), "Label series does not cover all image indices"
-
-        self.labels = labels
-        self.transform = transforms.Compose(
-            [transforms.Grayscale(num_output_channels=1), transforms.ToTensor()]
-        )
-
-    def __len__(self):
-        return len(self.img_files)
-
-    def __getitem__(self, idx) -> Tuple[torch.Tensor, int]:
-        index = self.indices[idx]
-        x = self.transform(Image.open(self.img_files[idx]))
-        y = torch.tensor(self.labels.iloc[index], dtype=torch.float32)
-        return x, y
-
-
-class IGTDTransformedDataModule(pl.LightningDataModule):
+class IgtdDataModule(CDCDataModule):
     def __init__(
         self,
         data_file: Path,
@@ -133,14 +178,15 @@ class IGTDTransformedDataModule(pl.LightningDataModule):
         batch_size=64,
         num_workers=4,
     ):
-        super().__init__()
-        self.data_file = data_file
+        super().__init__(
+            data_file=data_file,
+            target_col=target_col,
+            batch_size=batch_size,
+            num_workers=num_workers,
+        )
         self.img_dir = img_dir
-        self.target_col = target_col
-        self.batch_size = batch_size
-        self.num_workers = num_workers
 
-    def setup(self, stage=None):
+    def setup(self):
         if not self.img_dir.exists():
             raise FileNotFoundError(
                 f"IGTD data directory {self.img_dir} does not exist."
@@ -154,33 +200,7 @@ class IGTDTransformedDataModule(pl.LightningDataModule):
             train_val_idx, test_size=0.2, random_state=42
         )
 
-        full_dataset = IGTDTransformedCDCDataset(
-            img_dir=self.img_dir, labels=df[self.target_col]
-        )
+        full_dataset = IgtdCDCDataset(img_dir=self.img_dir, labels=df[self.target_col])
         self.train_dataset = Subset(full_dataset, train_idx)
         self.val_dataset = Subset(full_dataset, val_idx)
         self.test_dataset = Subset(full_dataset, test_idx)
-
-    def train_dataloader(self):
-        return DataLoader(
-            self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=self.num_workers,
-        )
-
-    def val_dataloader(self):
-        return DataLoader(
-            self.val_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-        )
-
-    def test_dataloader(self):
-        return DataLoader(
-            self.test_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-        )
