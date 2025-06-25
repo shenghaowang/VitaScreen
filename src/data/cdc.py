@@ -15,6 +15,40 @@ from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import transforms
 
 
+def prepare_data(
+    data_file: Path, target_col: str, downsample: bool = False
+) -> Tuple[
+    Tuple[np.ndarray, np.ndarray],
+    Tuple[np.ndarray, np.ndarray],
+    Tuple[np.ndarray, np.ndarray],
+]:
+    """Load and prepare data for training."""
+
+    # Load raw data
+    df = pd.read_csv(data_file)
+    feature_cols = [col for col in df.columns if col != target_col]
+
+    # Split data for training, validation, and testing
+    X, y = df[feature_cols].values, df[target_col].values
+    X_train_val, X_test, y_train_val, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    if downsample:
+        # Resampling using Edited Nearest Neighbours
+        enn = EditedNearestNeighbours()
+        X_train_val, y_train_val = enn.fit_resample(X_train_val, y_train_val)
+        logger.info(
+            f"Resampled training data shape: {X_train_val.shape}, {y_train_val.shape}"
+        )
+
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_val, y_train_val, test_size=0.2, random_state=42
+    )
+
+    return (X_train, y_train), (X_val, y_val), (X_test, y_test)
+
+
 class NctdCDCDataset(Dataset):
     def __init__(
         self, data: np.ndarray, labels: np.ndarray, transform: Callable = None
@@ -132,29 +166,13 @@ class NctdDataModule(CDCDataModule):
         )
 
     def setup(self, transform: Callable = None, downsample: bool = False):
-        # Load raw data
         if not self.data_file.exists():
             raise FileNotFoundError(f"Data file {self.data_file} does not exist.")
 
-        df = pd.read_csv(self.data_file)
-        feature_cols = [col for col in df.columns if col != self.target_col]
-
-        # Split data for training, validation, and testing
-        X, y = df[feature_cols].values, df[self.target_col].values
-        X_train_val, X_test, y_train_val, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-
-        if downsample:
-            # Resampling using Edited Nearest Neighbours
-            enn = EditedNearestNeighbours()
-            X_train_val, y_train_val = enn.fit_resample(X_train_val, y_train_val)
-            logger.info(
-                f"Resampled training data shape: {X_train_val.shape}, {y_train_val.shape}"
-            )
-
-        X_train, X_val, y_train, y_val = train_test_split(
-            X_train_val, y_train_val, test_size=0.2, random_state=42
+        (X_train, y_train), (X_val, y_val), (X_test, y_test) = prepare_data(
+            data_file=self.data_file,
+            target_col=self.target_col,
+            downsample=downsample,
         )
 
         # Scale the features
