@@ -1,0 +1,10 @@
+name: catboost
+
+hyperparams:
+  iterations: 1000
+  learning_rate: 0.01
+  max_depth: 10
+  verbose: 0
+  eval_metric: AUC
+  random_seed: 42
+  class_weights: [1, 3]
