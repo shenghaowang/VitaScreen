@@ -68,6 +68,13 @@ Supported model types:
 * `igtd`: CNN model to be trained using IGTD transformed data
 * `nctd`: CNN model to be trained using NCTD transformed data
 
+### Tune the hyperparameters for the CatBoost model
+
+```bash
+export PYTHONPATH=src
+python src/hyperparams_tuning/main.py
+```
+
 ---
 
 ## References
