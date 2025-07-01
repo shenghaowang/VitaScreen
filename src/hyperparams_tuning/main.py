@@ -59,12 +59,6 @@ def objective(trial, cfg: DictConfig):
             # skip unexpected keys like nested groups
             continue
 
-    if params.get("bootstrap_type") == "Bernoulli":
-        subsample_cfg = search_space.subsample
-        params["subsample"] = trial.suggest_float(
-            "subsample", subsample_cfg.low, subsample_cfg.high
-        )
-
     params_cfg = OmegaConf.create(params)
     trainer = EnsembleTreeTrainer(
         hyperparams=OmegaConf.merge({}, cfg.model.hyperparams, params_cfg)
