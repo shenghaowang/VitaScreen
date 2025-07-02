@@ -32,3 +32,6 @@ igtd:
   error: "abs"
   output_dir: ${data.dir}/IGTD
   img_dir: ${igtd.output_dir}/data
+
+# Hyperparameter tuning
+n_trials: 100

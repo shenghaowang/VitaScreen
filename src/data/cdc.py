@@ -22,7 +22,22 @@ def prepare_data(
     Tuple[np.ndarray, np.ndarray],
     Tuple[np.ndarray, np.ndarray],
 ]:
-    """Load and prepare data for training."""
+    """Load and prepare data for training
+
+    Parameters
+    ----------
+    data_file : Path
+        Path to the CSV file containing the dataset
+    target_col : str
+        Name of the target column in the dataset
+    downsample : bool, optional
+        Whether to downsample the negative class data, by default False
+
+    Returns
+    -------
+    Tuple[ Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray], ]
+        Returns training, validation, and test datasets as tuples of features and labels
+    """
 
     # Load raw data
     df = pd.read_csv(data_file)
@@ -50,18 +65,63 @@ def prepare_data(
 
 
 class NctdCDCDataset(Dataset):
+    """
+    PyTorch Dataset for the CDC data transformed using the NCTD algorithm.
+    """
+
     def __init__(
         self, data: np.ndarray, labels: np.ndarray, transform: Callable = None
     ):
+        """
+        Initialize the dataset.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            Array of shape (n_samples, n_features) containing CDC data.
+        labels : np.ndarray
+            Array of shape (n_samples,) containing target labels.
+        transform : Callable, optional
+            A callable that takes a single sample and the number of features,
+            and returns a transformed sample. If None, no transformation is applied.
+        """
 
         self.data = data
         self.labels = labels
         self.transform = transform
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """
+        Return the number of samples in the dataset.
+
+        Returns
+        -------
+        int
+            Number of samples.
+        """
         return len(self.data)
 
     def __getitem__(self, idx):
+        """
+        Retrieve a single transformed data sample and its label.
+
+        The data is transformed (if a transform is provided), converted to a
+        torch.FloatTensor, and reshaped to add a channel dimension for
+        compatibility with convolutional neural networks.
+
+        Parameters
+        ----------
+        idx : int
+            Index of the sample to retrieve.
+
+        Returns
+        -------
+        Tuple[torch.Tensor, torch.Tensor]
+            A tuple (x, y) where:
+            - x is the transformed data sample as a float32 torch.Tensor
+              with shape (1, n_transformed_features).
+            - y is the corresponding label as a float32 torch.Tensor scalar.
+        """
         n_features = len(self.data[idx])
 
         if self.transform:
@@ -77,7 +137,27 @@ class NctdCDCDataset(Dataset):
 
 
 class IgtdCDCDataset(Dataset):
+    """
+    PyTorch Dataset for the CDC data transformed using the IGTD algorithm.
+    """
+
     def __init__(self, img_dir: Path, labels: pd.Series):
+        """
+        Initialize the CDC Dataset transformed by the IGTD algorithm.
+
+        Parameters
+        ----------
+        img_dir : Path
+            Path to the directory containing IGTD-transformed PNG images.
+        labels : pd.Series
+            Series containing target labels. The Series index corresponds
+            to the integer indices extracted from the filenames.
+
+        Raises
+        ------
+        AssertionError
+            If the labels series does not cover all required indices.
+        """
         self.img_dir = img_dir
         self.img_files = sorted(img_dir.glob("*_image.png"))
 
@@ -95,10 +175,37 @@ class IgtdCDCDataset(Dataset):
             [transforms.Grayscale(num_output_channels=1), transforms.ToTensor()]
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """
+        Return the number of samples in the dataset.
+
+        Returns
+        -------
+        int
+            Number of samples.
+        """
         return len(self.img_files)
 
     def __getitem__(self, idx) -> Tuple[torch.Tensor, int]:
+        """
+        Retrieve a single image and its corresponding label.
+
+        Loads the image, converts it to a single-channel grayscale
+        tensor, and retrieves the label from the labels Series
+        based on the index extracted from the filename.
+
+        Parameters
+        ----------
+        idx : int
+            Index of the sample to retrieve.
+
+        Returns
+        -------
+        x : torch.Tensor
+            Image tensor of shape (1, H, W) and dtype float32.
+        y : torch.Tensor
+            Scalar tensor containing the label as float32.
+        """
         index = self.indices[idx]
         x = self.transform(Image.open(self.img_files[idx]))
         y = torch.tensor(self.labels.iloc[index], dtype=torch.float32)
@@ -106,6 +213,8 @@ class IgtdCDCDataset(Dataset):
 
 
 class CDCDataModule(pl.LightningDataModule, ABC):
+    """PyTorch Lightning DataModule for handling CDC datasets."""
+
     def __init__(
         self,
         data_file: Path,
@@ -121,11 +230,41 @@ class CDCDataModule(pl.LightningDataModule, ABC):
 
     @abstractmethod
     def setup(self, stage: str = None, **kwargs):
+        """
+        Abstract method for loading the splitting data.
+
+        Subclasses must implement this method to perform:
+          - Reading and processing the data file.
+          - Splitting the dataset into training, validation, and test sets.
+          - Assigning datasets to:
+              self.train_dataset
+              self.val_dataset
+              self.test_dataset
+
+        Parameters
+        ----------
+        stage : str, optional
+            One of 'fit', 'validate', 'test', or 'predict'. Allows
+            different data preparation logic depending on the stage.
+
+        Raises
+        ------
+        NotImplementedError
+            Always raised unless overridden in a subclass.
+        """
         raise NotImplementedError(
             "The setup method must be implemented in the subclass."
         )
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
+        """
+        Return the DataLoader for the training dataset.
+
+        Returns
+        -------
+        DataLoader
+            PyTorch DataLoader configured for training.
+        """
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
@@ -133,7 +272,15 @@ class CDCDataModule(pl.LightningDataModule, ABC):
             num_workers=self.num_workers,
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
+        """
+        Return the DataLoader for the validation dataset.
+
+        Returns
+        -------
+        DataLoader
+            PyTorch DataLoader configured for validation.
+        """
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
@@ -141,7 +288,15 @@ class CDCDataModule(pl.LightningDataModule, ABC):
             num_workers=self.num_workers,
         )
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DataLoader:
+        """
+        Return the DataLoader for the test dataset.
+
+        Returns
+        -------
+        DataLoader
+            PyTorch DataLoader configured for testing.
+        """
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
@@ -151,6 +306,13 @@ class CDCDataModule(pl.LightningDataModule, ABC):
 
 
 class NctdDataModule(CDCDataModule):
+    """
+    PyTorch Lightning DataModule for CDC data transformed
+    using the NCTD algorithm.
+
+    Inherits from CDCDataModule.
+    """
+
     def __init__(
         self,
         data_file: Path,
@@ -158,6 +320,20 @@ class NctdDataModule(CDCDataModule):
         batch_size: int = 64,
         num_workers: int = 4,
     ):
+        """
+        Initialize the NctdDataModule.
+
+        Parameters
+        ----------
+        data_file : Path
+            Path to the file containing the CDC dataset.
+        target_col : str
+            Name of the column to be used as the target variable.
+        batch_size : int, optional
+            Number of samples per batch (default is 64).
+        num_workers : int, optional
+            Number of subprocesses to use for data loading (default is 4).
+        """
         super().__init__(
             data_file=data_file,
             target_col=target_col,
@@ -166,6 +342,27 @@ class NctdDataModule(CDCDataModule):
         )
 
     def setup(self, transform: Callable = None, downsample: bool = False):
+        """
+        Prepare the data splits and initialize datasets.
+
+        Parameters
+        ----------
+        transform : Callable, optional
+            A function to transform individual data samples. The function
+            should accept two arguments:
+              - the feature vector for a single sample
+              - the number of features
+            and return a transformed feature vector.
+            If None, no transformation is applied.
+        downsample : bool, optional
+            Whether to downsample the dataset for quicker experiments.
+            Default is False.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the specified data_file does not exist.
+        """
         if not self.data_file.exists():
             raise FileNotFoundError(f"Data file {self.data_file} does not exist.")
 
@@ -188,6 +385,13 @@ class NctdDataModule(CDCDataModule):
 
 
 class IgtdDataModule(CDCDataModule):
+    """
+    PyTorch Lightning DataModule for CDC data transformed
+    using the IGTD algorithm.
+
+    Inherits from CDCDataModule.
+    """
+
     def __init__(
         self,
         data_file: Path,
@@ -196,6 +400,23 @@ class IgtdDataModule(CDCDataModule):
         batch_size=64,
         num_workers=4,
     ):
+        """
+        Initialize the IgtdDataModule.
+
+        Parameters
+        ----------
+        data_file : Path
+            Path to the CSV file containing CDC labels and features.
+        img_dir : Path
+            Path to the directory containing IGTD-generated PNG images.
+        target_col : str, optional
+            Name of the column in the CSV file to use as the target variable.
+            Default is "Label".
+        batch_size : int, optional
+            Number of samples per batch (default is 64).
+        num_workers : int, optional
+            Number of subprocesses to use for data loading (default is 4).
+        """
         super().__init__(
             data_file=data_file,
             target_col=target_col,
@@ -205,6 +426,14 @@ class IgtdDataModule(CDCDataModule):
         self.img_dir = img_dir
 
     def setup(self):
+        """
+        Load and split the IGTD dataset and transformed images.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the specified image directory does not exist.
+        """
         if not self.img_dir.exists():
             raise FileNotFoundError(
                 f"IGTD data directory {self.img_dir} does not exist."

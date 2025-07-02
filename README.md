@@ -34,11 +34,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+4. **Install the `pre-commit` hooks**
+```bash
+pre-commit install
+pre-commit run --all-files
+```
+
 ---
 
 ## 📂 Dataset
 
-The [CDC dataset](https://archive.ics.uci.edu/dataset/891/cdc+diabetes+health+indicators) is used for this prototype. A data folder needs to be created under the project folder to store the dataset.
+The [CDC dataset](https://archive.ics.uci.edu/dataset/891/cdc+diabetes+health+indicators) is used for this prototype. A data folder needs to be created under the project directory to store the dataset.
 
 ## Usage
 
@@ -62,8 +68,17 @@ Supported model types:
 * `igtd`: CNN model to be trained using IGTD transformed data
 * `nctd`: CNN model to be trained using NCTD transformed data
 
+### Tune the hyperparameters for the CatBoost model
+
+```bash
+export PYTHONPATH=src
+python src/hyperparams_tuning/main.py
+```
+
 ---
 
 ## References
-* [Image Generator for Tabular Data (IGTD)](https://github.com/zhuyitan/IGTD)
-* [Transforming tabular data into images via enhanced spatial relationships for CNN processing](https://www.nature.com/articles/s41598-025-01568-0)
+
+* Zhu, Y., Brettin, T., Xia, F. et al. Converting tabular data into images for deep learning with convolutional neural networks. Sci Rep 11, 11325 (2021). https://doi.org/10.1038/s41598-021-90923-y
+* Alenizy, H.A., Berri, J. Transforming tabular data into images via enhanced spatial relationships for CNN processing. Sci Rep 15, 17004 (2025). https://doi.org/10.1038/s41598-025-01568-0
+* The [code repository](https://github.com/zhuyitan/IGTD) of Image Generator for Tabular Data (IGTD).

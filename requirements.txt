@@ -6,6 +6,7 @@ imblearn
 lightgbm
 loguru
 numpy
+optuna
 pandas
 scikit-learn
 jupyter
