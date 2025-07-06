@@ -39,6 +39,7 @@ class ConvNet(nn.Module):
 
         # Fully connected layers
         self.r1 = nn.Linear(64, 64)  # hidden dense layer
+        self.dropout = nn.Dropout(p=0.5)
         self.sm = nn.Linear(64, 1)  # final output layer (binary classification)
 
     def forward(self, x):
@@ -49,5 +50,6 @@ class ConvNet(nn.Module):
         x = self.global_pool(x)  # [B, 64, 1, 1]
         x = torch.flatten(x, 1)  # [B, 64]
         x = F.relu(self.r1(x))  # hidden FC
+        x = self.dropout(x)
         x = self.sm(x)  # logits for binary classification
         return x
