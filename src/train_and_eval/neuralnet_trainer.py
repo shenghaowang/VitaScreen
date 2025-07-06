@@ -8,16 +8,18 @@ from omegaconf import DictConfig
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from torchinfo import summary
 
-from data.cdc import IgtdDataModule, NctdDataModule
+from data.cdc import IgtdDataModule, NeuralNetDataModule
 from model.classifier import DiabetesRiskClassifier
 from model.cnn import ConvNet
+from model.mlp import MLP
+from model.model_type import ModelType
 from train_and_eval.metrics_logger import MetricsLogger
 
 
-class ConvNetTrainer:
+class NeuralNetTrainer:
     def __init__(
         self,
-        data_module: Union[IgtdDataModule, NctdDataModule],
+        data_module: Union[IgtdDataModule, NeuralNetDataModule],
         model_cfg: DictConfig,
         train_cfg: DictConfig,
     ):
@@ -28,19 +30,17 @@ class ConvNetTrainer:
         self.model_cfg = model_cfg
         self.train_cfg = train_cfg
 
-    def init_trainer(self):
+    def init_trainer(self, model: ConvNet | MLP = ConvNet()):
         """Initialize the PyTorch Lightning trainer."""
 
-        self.model = ConvNet()
-        summary(
-            model=self.model,
-            input_size=(
-                1,
-                1,
-                self.model_cfg.input_dim.nrows,
-                self.model_cfg.input_dim.ncols,
-            ),
+        self.model = model
+        input_size = (
+            (1, self.model_cfg.input_dim)
+            if self.model_cfg.name == ModelType.MLP.value
+            else (1, 1, self.model_cfg.input_dim.nrows, self.model_cfg.input_dim.ncols)
         )
+        summary(model=self.model, input_size=input_size)
+
         metrics_logger = MetricsLogger()
         early_stop_callback = EarlyStopping(
             monitor="val_loss",
