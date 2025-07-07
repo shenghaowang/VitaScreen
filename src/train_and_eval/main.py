@@ -6,12 +6,13 @@ import torch
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 
-from data.cdc import IgtdDataModule, NctdDataModule
+from data.cdc import IgtdDataModule, NeuralNetDataModule
 from data.transform import nctd_transform
+from model.mlp import MLP
 from model.model_type import ModelType
-from train_and_eval.convnet_trainer import ConvNetTrainer
 from train_and_eval.ensemble_tree_trainer import EnsembleTreeTrainer
 from train_and_eval.evaluate import compute_metrics
+from train_and_eval.neuralnet_trainer import NeuralNetTrainer
 
 
 @hydra.main(version_base=None, config_path="../config", config_name="config")
@@ -22,8 +23,15 @@ def main(cfg: DictConfig):
 
     # Init data module
     match cfg.model.name:
+        case ModelType.MLP.value:
+            dm = NeuralNetDataModule(
+                data_file=Path(cfg.data.file_path),
+                target_col=cfg.data.target_col,
+            )
+            dm.setup()
+
         case ModelType.NCTD.value:
-            dm = NctdDataModule(
+            dm = NeuralNetDataModule(
                 data_file=Path(cfg.data.file_path),
                 target_col=cfg.data.target_col,
             )
@@ -45,12 +53,22 @@ def main(cfg: DictConfig):
             raise ValueError(f"Unsupported model type: {cfg.model.name}")
 
     if cfg.model.name in (ModelType.NCTD.value, ModelType.IGTD.value):
-        trainer = ConvNetTrainer(
+        trainer = NeuralNetTrainer(
             data_module=dm,
             model_cfg=cfg.model,
             train_cfg=cfg.train,
         )
         trainer.init_trainer()
+        trainer.train()
+        trainer.test()
+
+    elif cfg.model.name == ModelType.MLP.value:
+        trainer = NeuralNetTrainer(
+            data_module=dm,
+            model_cfg=cfg.model,
+            train_cfg=cfg.train,
+        )
+        trainer.init_trainer(model=MLP(input_dim=cfg.model.input_dim))
         trainer.train()
         trainer.test()
 

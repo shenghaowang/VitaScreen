@@ -64,7 +64,7 @@ def prepare_data(
     return (X_train, y_train), (X_val, y_val), (X_test, y_test)
 
 
-class NctdCDCDataset(Dataset):
+class NeuralNetCDCDataset(Dataset):
     """
     PyTorch Dataset for the CDC data transformed using the NCTD algorithm.
     """
@@ -126,6 +126,9 @@ class NctdCDCDataset(Dataset):
 
         if self.transform:
             x = self.transform(self.data[idx], n_features)
+
+        else:
+            x = self.data[idx]
 
         # logger.debug(f"Transformed data shape: {x.shape}")
 
@@ -305,7 +308,7 @@ class CDCDataModule(pl.LightningDataModule, ABC):
         )
 
 
-class NctdDataModule(CDCDataModule):
+class NeuralNetDataModule(CDCDataModule):
     """
     PyTorch Lightning DataModule for CDC data transformed
     using the NCTD algorithm.
@@ -321,7 +324,7 @@ class NctdDataModule(CDCDataModule):
         num_workers: int = 4,
     ):
         """
-        Initialize the NctdDataModule.
+        Initialize the NeuralNetDataModule.
 
         Parameters
         ----------
@@ -379,9 +382,9 @@ class NctdDataModule(CDCDataModule):
         X_test = scaler.transform(X_test)
 
         # Initialize datasets
-        self.train_dataset = NctdCDCDataset(X_train, y_train, transform)
-        self.val_dataset = NctdCDCDataset(X_val, y_val, transform)
-        self.test_dataset = NctdCDCDataset(X_test, y_test, transform)
+        self.train_dataset = NeuralNetCDCDataset(X_train, y_train, transform)
+        self.val_dataset = NeuralNetCDCDataset(X_val, y_val, transform)
+        self.test_dataset = NeuralNetCDCDataset(X_test, y_test, transform)
 
 
 class IgtdDataModule(CDCDataModule):

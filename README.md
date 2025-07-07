@@ -6,7 +6,7 @@ VitaScreen is a prototype solution designed to predict the risk of diabetes usin
 
 ## 🚀 Features
 
-- ✅ Diabetes risk prediction with tree based model and CNN
+- ✅ Diabetes risk prediction with tree based model and deep learning
 - ✅ Transforming tabular data into 2D images using IGTD and NCTD algorithms
 - ✅ Reproducible experiment on the CDC benchmark datasets
 - ✅ Early stopping, checkpointing, and runtime logging
@@ -65,6 +65,7 @@ python src/train/main.py model=<model_type>
 Supported model types:
 
 * `catboost`: CatBoost model to be trained on the original data
+* `mlp`: Multi-Layer Perception model to be trained on the original data
 * `igtd`: CNN model to be trained using IGTD transformed data
 * `nctd`: CNN model to be trained using NCTD transformed data
 
