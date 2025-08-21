@@ -2,6 +2,7 @@
 import pandas as pd
 from catboost import CatBoostClassifier, Pool
 from sklearn.model_selection import StratifiedKFold, train_test_split
+
 from notebooks.utils import compute_metrics
 
 # %%
@@ -54,7 +55,9 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X, y), 1):
         eval_metric="AUC",
     )
 
-    model.fit(train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds)
+    model.fit(
+        train_pool, eval_set=val_pool, early_stopping_rounds=early_stopping_rounds
+    )
 
     y_pred = model.predict(X_val)
     val_metrics = compute_metrics(y_val, y_pred, avg_option="binary")
@@ -64,8 +67,8 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X, y), 1):
     print(f"Validation Recall: {val_metrics['recall']:.4f}")
     print(f"Validation F1 Score: {val_metrics['f1_score']:.4f}")
 
-    if val_metrics['f1_score'] > best_score:
-        best_score = val_metrics['f1_score']
+    if val_metrics["f1_score"] > best_score:
+        best_score = val_metrics["f1_score"]
         model.save_model(f"best_model.cbm")
 
 # %%

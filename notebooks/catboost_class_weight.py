@@ -2,6 +2,7 @@
 import pandas as pd
 from catboost import CatBoostClassifier, Pool
 from sklearn.model_selection import train_test_split
+
 from notebooks.utils import compute_metrics
 
 # %%
