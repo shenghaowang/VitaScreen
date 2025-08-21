@@ -7,7 +7,7 @@ from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 
 from data.cdc import IgtdDataModule, NeuralNetDataModule
-from data.transform import nctd_transform
+from data.utils import nctd_transform
 from model.mlp import MLP
 from model.model_type import ModelType
 from train_and_eval.ensemble_tree_trainer import EnsembleTreeTrainer
