@@ -1,11 +1,11 @@
 import time
 from typing import List, Tuple, Union
 
-import pytorch_lightning as pl
+import lightning as L
 import torch
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from loguru import logger
 from omegaconf import DictConfig
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from torchinfo import summary
 
 from data.cdc import IgtdDataModule, NeuralNetDataModule
@@ -58,7 +58,7 @@ class NeuralNetTrainer:
             save_weights_only=False,  # save full model (or True for just weights)
         )
 
-        self.trainer = pl.Trainer(
+        self.trainer = L.Trainer(
             max_epochs=self.train_cfg.max_epochs,
             devices=self.train_cfg.devices,
             enable_progress_bar=True,

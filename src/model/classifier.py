@@ -1,10 +1,10 @@
-import pytorch_lightning as pl
+import lightning as L
 import torch
 import torch.nn as nn
 import torchmetrics
 
 
-class DiabetesRiskClassifier(pl.LightningModule):
+class DiabetesRiskClassifier(L.LightningModule):
     def __init__(self, model, batch_size: int, pos_weight: float = None):
         super(DiabetesRiskClassifier, self).__init__()
         self.save_hyperparameters()

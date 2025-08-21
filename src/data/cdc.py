@@ -2,9 +2,9 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Callable, Tuple
 
+import lightning as L
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl
 import torch
 from imblearn.under_sampling import EditedNearestNeighbours
 from loguru import logger
@@ -215,7 +215,7 @@ class IgtdCDCDataset(Dataset):
         return x, y
 
 
-class CDCDataModule(pl.LightningDataModule, ABC):
+class CDCDataModule(L.LightningDataModule, ABC):
     """PyTorch Lightning DataModule for handling CDC datasets."""
 
     def __init__(

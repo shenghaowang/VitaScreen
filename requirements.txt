@@ -4,6 +4,7 @@ ctgan
 hydra-core
 imblearn
 lightgbm
+lightning
 loguru
 numpy
 optuna
@@ -14,7 +15,6 @@ matplotlib
 seaborn
 plotly
 pre-commit
-pytorch-lightning
 pytest
 torch
 torchinfo
