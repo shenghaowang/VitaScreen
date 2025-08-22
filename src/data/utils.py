@@ -1,27 +1,30 @@
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 from imblearn.under_sampling import EditedNearestNeighbours
 from loguru import logger
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, train_test_split
 
-# class StratifiedSampler:
-#     def __init__(self, downsample=False):
-#         if downsample:
-#             self.sampler = EditedNearestNeighbours()
-#         else:
-#             self.sampler = StratifiedKFold()
 
-#     def sample(self):
-#         # Implement stratified sampling logic here
-#         if self.downsample:
-#             # Apply downsampling
-#             pass
-#         else:
-#             # Apply regular stratified sampling
-#             pass
+def split_data(
+    X: np.ndarray, y: np.ndarray, downsample: bool = False, n_splits=5
+) -> Tuple[List[Tuple[np.ndarray, np.ndarray]], np.ndarray]:
+    indices = np.arange(len(X))
+
+    train_val_idx, test_idx = train_test_split(
+        indices, stratify=y, test_size=0.2, random_state=42
+    )
+
+    if downsample:
+        sampler = EditedNearestNeighbours()
+        _, _ = sampler.fit_resample(X[train_val_idx], y[train_val_idx])
+        train_val_idx = sampler.sample_indices_
+
+    cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+    return list(cv.split(X[train_val_idx], y[train_val_idx])), test_idx
 
 
 def prepare_data(
