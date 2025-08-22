@@ -59,7 +59,7 @@ python src/data/main.py
 
 ```bash
 export PYTHONPATH=src
-python src/train/main.py model=<model_type>
+python src/train_and_eval/main.py model=<model_type>
 ```
 
 Supported model types:
