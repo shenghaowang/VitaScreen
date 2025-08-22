@@ -85,6 +85,7 @@ def main(cfg: DictConfig):
     # Export results
     results_df = pd.DataFrame(results)
     results_df.to_csv(cfg.results.file_path, index=False)
+    logger.info(f"Predictions for the test set saved to {cfg.results.file_path}")
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
+import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 
-from data.cdc import prepare_data
+from data.utils import split_data
 from model.ensemble_tree import EnsembleTreeClassifier, Pool
 from train_and_eval.evaluate import compute_metrics
 
@@ -13,8 +14,8 @@ class EnsembleTreeTrainer:
     """
 
     def __init__(self, hyperparams: DictConfig):
-        hyperparams = OmegaConf.to_container(hyperparams, resolve=True)
-        self.model = EnsembleTreeClassifier(**hyperparams)
+        self.hyperparams = OmegaConf.to_container(hyperparams, resolve=True)
+        self.best_model = None
 
     def setup(self, data_cfg: DictConfig):
         """
@@ -28,24 +29,44 @@ class EnsembleTreeTrainer:
                 - target_col: Name of the target variable column.
                 - downsample: Whether to downsample the data for addressing class imbalance.
         """
-        (
-            (X_train, y_train),
-            (self.X_val, self.y_val),
-            (self.X_test, self.y_test),
-        ) = prepare_data(
-            data_file=data_cfg.file_path,
-            target_col=data_cfg.target_col,
+        df = pd.read_csv(data_cfg.file_path)
+
+        feature_cols = [col for col in df.columns if col != data_cfg.target_col]
+        self.X, self.y = df[feature_cols].values, df[data_cfg.target_col].values
+
+        k_fold_indices, test_idx = split_data(
+            X=self.X,
+            y=self.y,
             downsample=data_cfg.downsample,
         )
 
-        self.train_pool = Pool(data=X_train, label=y_train)
-        self.val_pool = Pool(data=self.X_val, label=self.y_val)
+        self.k_fold_indices = k_fold_indices
+        self.test_idx = test_idx
 
     def train(self):
         """Train the ensemble tree model."""
-        self.model.fit(
-            self.train_pool, eval_set=self.val_pool, early_stopping_rounds=50
-        )
+        best_f1_score = 0.0
+
+        for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
+            logger.info(f"Training fold {i + 1}")
+
+            train_pool = Pool(data=self.X[train_idx], label=self.y[train_idx])
+            val_pool = Pool(data=self.X[val_idx], label=self.y[val_idx])
+
+            model = EnsembleTreeClassifier(**self.hyperparams)
+            model.fit(train_pool, eval_set=val_pool, early_stopping_rounds=50)
+
+            y_preds = model.predict(self.X[val_idx])
+            val_metrics = compute_metrics(self.y[val_idx], y_preds, avg_option="binary")
+
+            logger.info(f"Validation Accuracy: {val_metrics['accuracy']:.4f}")
+            logger.info(f"Validation Precision: {val_metrics['precision']:.4f}")
+            logger.info(f"Validation Recall: {val_metrics['recall']:.4f}")
+            logger.info(f"Validation F1 Score: {val_metrics['f1_score']:.4f}")
+
+            if val_metrics["f1_score"] > best_f1_score:
+                best_f1_score = val_metrics["f1_score"]
+                self.best_model = model
 
     def evaluate(self):
         """
@@ -58,14 +79,6 @@ class EnsembleTreeTrainer:
         y_preds : np.ndarray
             Predicted labels for the test set.
         """
-        y_preds = self.model.predict(self.X_val)
-        val_metrics = compute_metrics(self.y_val, y_preds, avg_option="binary")
+        y_preds = self.best_model.predict(self.X[self.test_idx])
 
-        logger.info(f"Validation Accuracy: {val_metrics['accuracy']:.4f}")
-        logger.info(f"Validation Precision: {val_metrics['precision']:.4f}")
-        logger.info(f"Validation Recall: {val_metrics['recall']:.4f}")
-        logger.info(f"Validation F1 Score: {val_metrics['f1_score']:.4f}")
-
-        y_preds = self.model.predict(self.X_test)
-
-        return self.y_test, y_preds
+        return self.y[self.test_idx], y_preds
