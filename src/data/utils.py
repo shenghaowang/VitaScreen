@@ -18,13 +18,22 @@ def split_data(
     )
 
     if downsample:
-        sampler = EditedNearestNeighbours()
-        _, _ = sampler.fit_resample(X[train_val_idx], y[train_val_idx])
-        train_val_idx = sampler.sample_indices_
+        enn = EditedNearestNeighbours()
+        enn.fit_resample(X[train_val_idx], y[train_val_idx])
+
+        # Map to global indices
+        train_val_idx = train_val_idx[enn.sample_indices_]
 
     cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+    folds: List[Tuple[np.ndarray, np.ndarray]] = []
 
-    return list(cv.split(X[train_val_idx], y[train_val_idx])), test_idx
+    # Indices returned by cv are LOCAL to train_val_idx; map them to GLOBAL
+    for tr_local, va_local in cv.split(np.zeros(len(train_val_idx)), y[train_val_idx]):
+        tr_global = train_val_idx[tr_local]
+        va_global = train_val_idx[va_local]
+        folds.append((tr_global, va_global))
+
+    return folds, test_idx
 
 
 def prepare_data(
