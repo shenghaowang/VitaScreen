@@ -75,7 +75,7 @@ def main(cfg: DictConfig):
     else:
         trainer = EnsembleTreeTrainer(hyperparams=cfg.model.hyperparams)
         trainer.setup(data_cfg=cfg.data)
-        trainer.train()
+        trainer.cross_validate()
 
     # Evaluate the model
     logger.info("Evaluating the model...")
