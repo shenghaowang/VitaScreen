@@ -1,3 +1,6 @@
+from typing import Tuple
+
+import numpy as np
 import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
@@ -43,8 +46,26 @@ class EnsembleTreeTrainer:
         self.k_fold_indices = k_fold_indices
         self.test_idx = test_idx
 
-    def train(self):
+    def train(self) -> Tuple[np.ndarray, np.ndarray]:
         """Train the ensemble tree model."""
+        # Pick the first fold from k-fold indices
+        train_idx, val_idx = self.k_fold_indices[0]
+        logger.info(
+            f"Size of training set: {len(train_idx)}, validation set: {len(val_idx)}"
+        )
+
+        train_pool = Pool(data=self.X[train_idx], label=self.y[train_idx])
+        val_pool = Pool(data=self.X[val_idx], label=self.y[val_idx])
+
+        model = EnsembleTreeClassifier(**self.hyperparams)
+        model.fit(train_pool, eval_set=val_pool, early_stopping_rounds=50)
+
+        y_preds = model.predict(self.X[val_idx])
+
+        return self.y[val_idx], y_preds
+
+    def cross_validate(self):
+        """Train the ensemble tree model with cross validation."""
         best_f1_score = 0.0
 
         for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
@@ -79,6 +100,6 @@ class EnsembleTreeTrainer:
         y_preds : np.ndarray
             Predicted labels for the test set.
         """
-        y_preds = self.best_model.predict(self.X[self.test_idx])
+        y_pred = self.best_model.predict(self.X[self.test_idx])
 
-        return self.y[self.test_idx], y_preds
+        return self.y[self.test_idx], y_pred
