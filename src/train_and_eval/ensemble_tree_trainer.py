@@ -69,7 +69,7 @@ class EnsembleTreeTrainer:
         best_f1_score = 0.0
 
         for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
-            logger.info(f"Training fold {i + 1}")
+            logger.info(f"Training fold {i + 1}/{len(self.k_fold_indices)}")
 
             train_pool = Pool(data=self.X[train_idx], label=self.y[train_idx])
             val_pool = Pool(data=self.X[val_idx], label=self.y[val_idx])
