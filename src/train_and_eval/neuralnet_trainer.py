@@ -1,12 +1,13 @@
 import time
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import lightning as L
 import torch
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from loguru import logger
 from omegaconf import DictConfig
+from torch.utils.data import DataLoader
 from torchinfo import summary
 
 from data.cdc import IgtdDataModule, NeuralNetDataModule
@@ -15,6 +16,7 @@ from model.cnn import ConvNet
 from model.mlp import MLP
 from model.model_type import ModelType
 from train_and_eval.base_trainer import BaseTrainer
+from train_and_eval.evaluate import compute_metrics
 from train_and_eval.metrics_logger import MetricsLogger
 
 
@@ -65,27 +67,53 @@ class NeuralNetTrainer(BaseTrainer):
             callbacks=[metrics_logger, early_stop_callback, self.checkpoint_callback],
         )
 
-    def cross_validate(self, data_file: Path, img_dir: Path = None, target_col: str = "Label") -> None:
+    def cross_validate(
+        self, data_file: Path, img_dir: Path = None, target_col: str = "Label"
+    ) -> None:
         """Train the model with cross validation."""
 
         match self.model_cfg.name:
-            case ModelType.MLP.value | ModelType.NCTD.value:
+            case ModelType.MLP.value:
                 dm = NeuralNetDataModule(data_file=data_file)
-            
-            case ModelType.IGTD.value
+                model = MLP(input_dim=self.model_cfg.input_dim)
+
+            case ModelType.NCTD.value:
+                dm = NeuralNetDataModule(data_file=data_file)
+                model = ConvNet()
+
+            case ModelType.IGTD.value:
                 dm = IgtdDataModule(data_file=data_file, img_dir=img_dir)
-            
+                model = ConvNet()
+
             case _:
-                raise ValueError(f"Unsupported model type: {cfg.model.name}")
-        
-        dm.setup()
+                raise ValueError(f"Unsupported model type: {self.model_cfg.name}")
 
         best_f1_score = 0.0
-
         for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
             logger.info(f"Training fold {i + 1}/{len(self.k_fold_indices)}")
+            dm.setup(train_idx=train_idx, val_idx=val_idx)
 
-    def train(self):
+            self.init_trainer(model=model)
+            self.train(
+                train_loader=dm.train_dataloader(),
+                val_loader=dm.val_dataloader(),
+            )
+
+            # Evaluate on validation set
+            y_val, y_pred = self.evaluate()
+            val_metrics = compute_metrics(y_val, y_pred, avg_option="binary")
+
+            logger.info(f"Validation Accuracy: {val_metrics['accuracy']:.4f}")
+            logger.info(f"Validation Precision: {val_metrics['precision']:.4f}")
+            logger.info(f"Validation Recall: {val_metrics['recall']:.4f}")
+            logger.info(f"Validation F1 Score: {val_metrics['f1_score']:.4f}")
+
+            # Track best model
+            if val_metrics["f1_score"] > best_f1_score:
+                best_f1_score = val_metrics["f1_score"]
+                self.best_model_path = self.checkpoint_callback.best_model_path
+
+    def train(self, train_loader: DataLoader, val_loader: DataLoader):
         logger.info("Training the model...")
 
         classifier = DiabetesRiskClassifier(
@@ -97,8 +125,8 @@ class NeuralNetTrainer(BaseTrainer):
         start_time = time.time()
         self.trainer.fit(
             classifier,
-            train_dataloaders=self.train_loader,
-            val_dataloaders=self.val_loader,
+            train_dataloaders=train_loader,
+            val_dataloaders=val_loader,
         )
         end_time = time.time()
 
@@ -113,22 +141,22 @@ class NeuralNetTrainer(BaseTrainer):
         output = self.trainer.test(classifier, self.test_loader)
         logger.debug(f"Test output: {output}")
 
-    def evaluate(self) -> Tuple[List[float], List[float]]:
+    def evaluate(self, data_loader: DataLoader) -> Tuple[List[float], List[float]]:
         """
-        Evaluate the model on the test set.
+        Evaluate the model on the validation / test set.
         """
         self.model.eval()
         y_pred = []
-        y_test = []
+        y_true = []
 
         with torch.no_grad():
-            for x, y in self.test_loader:
+            for x, y in data_loader:
 
                 logits = self.model(x)  # [B, 1]
                 probs = torch.sigmoid(logits)
                 preds = (probs > 0.5).long().squeeze()
 
                 y_pred.extend(preds.cpu().numpy())
-                y_test.extend(y.cpu().numpy())
+                y_true.extend(y.cpu().numpy())
 
-        return y_test, y_pred
+        return y_true, y_pred
