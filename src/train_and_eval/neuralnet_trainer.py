@@ -59,6 +59,7 @@ class NeuralNetTrainer(BaseTrainer):
         )
 
         self.trainer = L.Trainer(
+            accelerator="auto",
             max_epochs=self.train_cfg.max_epochs,
             devices=self.train_cfg.devices,
             enable_progress_bar=True,
