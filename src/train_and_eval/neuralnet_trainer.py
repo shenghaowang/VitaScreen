@@ -96,15 +96,13 @@ class NeuralNetTrainer(BaseTrainer):
         )
         output = self.trainer.test(classifier, self.test_loader)
         logger.debug(f"Test output: {output}")
-    
+
     def cross_validate(self) -> None:
         """Train the model with cross validation."""
         best_f1_score = 0.0
 
         for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
             logger.info(f"Training fold {i + 1}/{len(self.k_fold_indices)}")
-
-
 
     def evaluate(self) -> Tuple[List[float], List[float]]:
         """
