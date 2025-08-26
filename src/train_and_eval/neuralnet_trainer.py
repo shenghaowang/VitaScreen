@@ -13,16 +13,18 @@ from model.classifier import DiabetesRiskClassifier
 from model.cnn import ConvNet
 from model.mlp import MLP
 from model.model_type import ModelType
+from train_and_eval.base_trainer import BaseTrainer
 from train_and_eval.metrics_logger import MetricsLogger
 
 
-class NeuralNetTrainer:
+class NeuralNetTrainer(BaseTrainer):
     def __init__(
         self,
         data_module: Union[IgtdDataModule, NeuralNetDataModule],
         model_cfg: DictConfig,
         train_cfg: DictConfig,
     ):
+        super().__init__()
         self.train_loader = data_module.train_dataloader()
         self.val_loader = data_module.val_dataloader()
         self.test_loader = data_module.test_dataloader()
@@ -94,6 +96,15 @@ class NeuralNetTrainer:
         )
         output = self.trainer.test(classifier, self.test_loader)
         logger.debug(f"Test output: {output}")
+    
+    def cross_validate(self) -> None:
+        """Train the model with cross validation."""
+        best_f1_score = 0.0
+
+        for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
+            logger.info(f"Training fold {i + 1}/{len(self.k_fold_indices)}")
+
+
 
     def evaluate(self) -> Tuple[List[float], List[float]]:
         """
