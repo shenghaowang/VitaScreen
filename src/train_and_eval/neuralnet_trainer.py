@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 from typing import List, Tuple, Union
 
 import lightning as L
@@ -20,15 +21,10 @@ from train_and_eval.metrics_logger import MetricsLogger
 class NeuralNetTrainer(BaseTrainer):
     def __init__(
         self,
-        data_module: Union[IgtdDataModule, NeuralNetDataModule],
         model_cfg: DictConfig,
         train_cfg: DictConfig,
     ):
         super().__init__()
-        self.train_loader = data_module.train_dataloader()
-        self.val_loader = data_module.val_dataloader()
-        self.test_loader = data_module.test_dataloader()
-
         self.model_cfg = model_cfg
         self.train_cfg = train_cfg
 
@@ -69,6 +65,26 @@ class NeuralNetTrainer(BaseTrainer):
             callbacks=[metrics_logger, early_stop_callback, self.checkpoint_callback],
         )
 
+    def cross_validate(self, data_file: Path, img_dir: Path = None, target_col: str = "Label") -> None:
+        """Train the model with cross validation."""
+
+        match self.model_cfg.name:
+            case ModelType.MLP.value | ModelType.NCTD.value:
+                dm = NeuralNetDataModule(data_file=data_file)
+            
+            case ModelType.IGTD.value
+                dm = IgtdDataModule(data_file=data_file, img_dir=img_dir)
+            
+            case _:
+                raise ValueError(f"Unsupported model type: {cfg.model.name}")
+        
+        dm.setup()
+
+        best_f1_score = 0.0
+
+        for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
+            logger.info(f"Training fold {i + 1}/{len(self.k_fold_indices)}")
+
     def train(self):
         logger.info("Training the model...")
 
@@ -96,13 +112,6 @@ class NeuralNetTrainer(BaseTrainer):
         )
         output = self.trainer.test(classifier, self.test_loader)
         logger.debug(f"Test output: {output}")
-
-    def cross_validate(self) -> None:
-        """Train the model with cross validation."""
-        best_f1_score = 0.0
-
-        for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
-            logger.info(f"Training fold {i + 1}/{len(self.k_fold_indices)}")
 
     def evaluate(self) -> Tuple[List[float], List[float]]:
         """
