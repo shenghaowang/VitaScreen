@@ -307,7 +307,7 @@ class NeuralNetDataModule(CDCDataModule):
         self,
         train_idx: np.ndarray,
         val_idx: np.ndarray,
-        test_idx: np.ndarray,
+        test_idx: np.ndarray = None,
         transform: Callable = None,
         # downsample: bool = False
     ):
@@ -327,18 +327,23 @@ class NeuralNetDataModule(CDCDataModule):
 
         X_train, y_train = self.X[train_idx], self.y[train_idx]
         X_val, y_val = self.X[val_idx], self.y[val_idx]
-        X_test, y_test = self.X[test_idx], self.y[test_idx]
 
         # Scale the features
         scaler = MinMaxScaler()
         X_train = scaler.fit_transform(X_train)
         X_val = scaler.transform(X_val)
-        X_test = scaler.transform(X_test)
 
         # Initialize datasets
         self.train_dataset = NeuralNetCDCDataset(X_train, y_train, transform)
         self.val_dataset = NeuralNetCDCDataset(X_val, y_val, transform)
-        self.test_dataset = NeuralNetCDCDataset(X_test, y_test, transform)
+
+        if test_idx is not None:
+            X_test, y_test = self.X[test_idx], self.y[test_idx]
+            X_test = scaler.transform(X_test)
+            self.test_dataset = NeuralNetCDCDataset(X_test, y_test, transform)
+
+        else:
+            self.test_dataset = None
 
 
 class IgtdDataModule(CDCDataModule):
@@ -382,7 +387,9 @@ class IgtdDataModule(CDCDataModule):
         )
         self.img_dir = img_dir
 
-    def setup(self, train_idx: np.ndarray, val_idx: np.ndarray, test_idx: np.ndarray):
+    def setup(
+        self, train_idx: np.ndarray, val_idx: np.ndarray, test_idx: np.ndarray = None
+    ):
         """
         Load and split the IGTD images for cross-validation.
 
@@ -401,4 +408,9 @@ class IgtdDataModule(CDCDataModule):
 
         self.train_dataset = Subset(full_dataset, train_idx)
         self.val_dataset = Subset(full_dataset, val_idx)
-        self.test_dataset = Subset(full_dataset, test_idx)
+
+        if test_idx is not None:
+            self.test_dataset = Subset(full_dataset, test_idx)
+
+        else:
+            self.test_dataset = None
