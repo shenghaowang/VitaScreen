@@ -1,50 +1,24 @@
 from typing import Tuple
 
 import numpy as np
-import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 
-from data.utils import split_data
 from model.ensemble_tree import EnsembleTreeClassifier, Pool
+from train_and_eval.base_trainer import BaseTrainer
 from train_and_eval.evaluate import compute_metrics
 
 
-class EnsembleTreeTrainer:
+class EnsembleTreeTrainer(BaseTrainer):
     """
     Trainer class for ensemble tree-based models, in particular
     CatBoostClassifier on CDC data.
     """
 
     def __init__(self, hyperparams: DictConfig):
+        super().__init__()
         self.hyperparams = OmegaConf.to_container(hyperparams, resolve=True)
         self.best_model = None
-
-    def setup(self, data_cfg: DictConfig):
-        """
-        Load and prepare the CDC dataset for training, validation, and testing.
-
-        Parameters
-        ----------
-        data_cfg : DictConfig
-            Hydra/OmegaConf configuration containing:
-                - file_path: Path to the CDC dataset file.
-                - target_col: Name of the target variable column.
-                - downsample: Whether to downsample the data for addressing class imbalance.
-        """
-        df = pd.read_csv(data_cfg.file_path)
-
-        feature_cols = [col for col in df.columns if col != data_cfg.target_col]
-        self.X, self.y = df[feature_cols].values, df[data_cfg.target_col].values
-
-        k_fold_indices, test_idx = split_data(
-            X=self.X,
-            y=self.y,
-            downsample=data_cfg.downsample,
-        )
-
-        self.k_fold_indices = k_fold_indices
-        self.test_idx = test_idx
 
     def train(self) -> Tuple[np.ndarray, np.ndarray]:
         """Train the ensemble tree model."""
