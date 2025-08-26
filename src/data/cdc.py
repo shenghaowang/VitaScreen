@@ -341,16 +341,6 @@ class NeuralNetDataModule(CDCDataModule):
         self.val_dataset = NeuralNetCDCDataset(X_val, y_val, transform)
         self.test_dataset = NeuralNetCDCDataset(X_test, y_test, transform)
 
-    def setup_test_only(self, test_idx: np.ndarray, transform: Callable = None):
-        """Setup only test dataset for final evaluation."""
-        X_test, y_test = self.X[test_idx], self.y[test_idx]
-
-        # Scale the features - ideally we'd save/load scaler from training
-        scaler = MinMaxScaler()
-        X_test = scaler.fit_transform(X_test)
-
-        self.test_dataset = NeuralNetCDCDataset(X_test, y_test, transform)
-
 
 class IgtdDataModule(CDCDataModule):
     """
@@ -393,9 +383,11 @@ class IgtdDataModule(CDCDataModule):
         )
         self.img_dir = img_dir
 
-    def setup(self):
+    def setup(
+        self, train_idx: np.ndarray, val_idx: np.ndarray, test_idx: np.ndarray
+    ):
         """
-        Load and split the IGTD dataset and transformed images.
+        Load and split the IGTD images for cross-validation.
 
         Raises
         ------
@@ -406,33 +398,10 @@ class IgtdDataModule(CDCDataModule):
             raise FileNotFoundError(
                 f"IGTD data directory {self.img_dir} does not exist."
             )
-
-        df = pd.read_csv(self.data_file)
-        train_val_idx, test_idx = train_test_split(
-            df.index, test_size=0.1, random_state=42
-        )
-        train_idx, val_idx = train_test_split(
-            train_val_idx, test_size=0.2, random_state=42
-        )
-
-        full_dataset = IgtdCDCDataset(img_dir=self.img_dir, labels=df[self.target_col])
-        self.train_dataset = Subset(full_dataset, train_idx)
-        self.val_dataset = Subset(full_dataset, val_idx)
-        self.test_dataset = Subset(full_dataset, test_idx)
-
-    def setup_with_indices(
-        self, train_idx: np.ndarray, val_idx: np.ndarray, test_idx: np.ndarray
-    ):
-        """Setup with specific indices for cross-validation."""
+    
         df = pd.read_csv(self.data_file)
         full_dataset = IgtdCDCDataset(img_dir=self.img_dir, labels=df[self.target_col])
 
         self.train_dataset = Subset(full_dataset, train_idx)
         self.val_dataset = Subset(full_dataset, val_idx)
-        self.test_dataset = Subset(full_dataset, test_idx)
-
-    def setup_test_only(self, test_idx: np.ndarray):
-        """Setup only test dataset."""
-        df = pd.read_csv(self.data_file)
-        full_dataset = IgtdCDCDataset(img_dir=self.img_dir, labels=df[self.target_col])
         self.test_dataset = Subset(full_dataset, test_idx)
