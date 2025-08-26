@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import hydra
 import pandas as pd
 import torch
@@ -24,10 +26,9 @@ def main(cfg: DictConfig):
             trainer = NeuralNetTrainer(
                 model_cfg=cfg.model,
                 train_cfg=cfg.train,
-                data_cfg=cfg.data,
             )
             trainer.setup(data_cfg=cfg.data)
-            trainer.cross_validate()
+            trainer.cross_validate(data_file=Path(cfg.data.file_path))
 
         case ModelType.CatBoost.value:
             trainer = EnsembleTreeTrainer(hyperparams=cfg.model.hyperparams)
