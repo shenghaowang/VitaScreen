@@ -13,8 +13,6 @@ from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import transforms
 
-from data.utils import prepare_data
-
 
 class NeuralNetCDCDataset(Dataset):
     """
@@ -299,7 +297,21 @@ class NeuralNetDataModule(CDCDataModule):
             num_workers=num_workers,
         )
 
-    def setup(self, transform: Callable = None, downsample: bool = False):
+        if not self.data_file.exists():
+            raise FileNotFoundError(f"Data file {self.data_file} does not exist.")
+
+        df = pd.read_csv(self.data_file)
+        feature_cols = [col for col in df.columns if col != self.target_col]
+        self.X, self.y = df[feature_cols].values, df[self.target_col].values
+
+    def setup(
+        self,
+        train_idx: np.ndarray,
+        val_idx: np.ndarray,
+        test_idx: np.ndarray,
+        transform: Callable = None,
+        # downsample: bool = False
+    ):
         """
         Prepare the data splits and initialize datasets.
 
@@ -312,23 +324,11 @@ class NeuralNetDataModule(CDCDataModule):
               - the number of features
             and return a transformed feature vector.
             If None, no transformation is applied.
-        downsample : bool, optional
-            Whether to downsample the dataset for quicker experiments.
-            Default is False.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the specified data_file does not exist.
         """
-        if not self.data_file.exists():
-            raise FileNotFoundError(f"Data file {self.data_file} does not exist.")
 
-        (X_train, y_train), (X_val, y_val), (X_test, y_test) = prepare_data(
-            data_file=self.data_file,
-            target_col=self.target_col,
-            downsample=downsample,
-        )
+        X_train, y_train = self.X[train_idx], self.y[train_idx]
+        X_val, y_val = self.X[val_idx], self.y[val_idx]
+        X_test, y_test = self.X[test_idx], self.y[test_idx]
 
         # Scale the features
         scaler = MinMaxScaler()
@@ -339,6 +339,16 @@ class NeuralNetDataModule(CDCDataModule):
         # Initialize datasets
         self.train_dataset = NeuralNetCDCDataset(X_train, y_train, transform)
         self.val_dataset = NeuralNetCDCDataset(X_val, y_val, transform)
+        self.test_dataset = NeuralNetCDCDataset(X_test, y_test, transform)
+
+    def setup_test_only(self, test_idx: np.ndarray, transform: Callable = None):
+        """Setup only test dataset for final evaluation."""
+        X_test, y_test = self.X[test_idx], self.y[test_idx]
+
+        # Scale the features - ideally we'd save/load scaler from training
+        scaler = MinMaxScaler()
+        X_test = scaler.fit_transform(X_test)
+
         self.test_dataset = NeuralNetCDCDataset(X_test, y_test, transform)
 
 
@@ -408,4 +418,21 @@ class IgtdDataModule(CDCDataModule):
         full_dataset = IgtdCDCDataset(img_dir=self.img_dir, labels=df[self.target_col])
         self.train_dataset = Subset(full_dataset, train_idx)
         self.val_dataset = Subset(full_dataset, val_idx)
+        self.test_dataset = Subset(full_dataset, test_idx)
+
+    def setup_with_indices(
+        self, train_idx: np.ndarray, val_idx: np.ndarray, test_idx: np.ndarray
+    ):
+        """Setup with specific indices for cross-validation."""
+        df = pd.read_csv(self.data_file)
+        full_dataset = IgtdCDCDataset(img_dir=self.img_dir, labels=df[self.target_col])
+
+        self.train_dataset = Subset(full_dataset, train_idx)
+        self.val_dataset = Subset(full_dataset, val_idx)
+        self.test_dataset = Subset(full_dataset, test_idx)
+
+    def setup_test_only(self, test_idx: np.ndarray):
+        """Setup only test dataset."""
+        df = pd.read_csv(self.data_file)
+        full_dataset = IgtdCDCDataset(img_dir=self.img_dir, labels=df[self.target_col])
         self.test_dataset = Subset(full_dataset, test_idx)
