@@ -8,7 +8,6 @@ import pandas as pd
 import torch
 from loguru import logger
 from PIL import Image
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, Dataset, Subset
 from torchvision import transforms
@@ -272,7 +271,7 @@ class NeuralNetDataModule(CDCDataModule):
     def __init__(
         self,
         data_file: Path,
-        target_col: str,
+        target_col: str = "Label",
         batch_size: int = 64,
         num_workers: int = 4,
     ):
@@ -383,9 +382,7 @@ class IgtdDataModule(CDCDataModule):
         )
         self.img_dir = img_dir
 
-    def setup(
-        self, train_idx: np.ndarray, val_idx: np.ndarray, test_idx: np.ndarray
-    ):
+    def setup(self, train_idx: np.ndarray, val_idx: np.ndarray, test_idx: np.ndarray):
         """
         Load and split the IGTD images for cross-validation.
 
@@ -398,7 +395,7 @@ class IgtdDataModule(CDCDataModule):
             raise FileNotFoundError(
                 f"IGTD data directory {self.img_dir} does not exist."
             )
-    
+
         df = pd.read_csv(self.data_file)
         full_dataset = IgtdCDCDataset(img_dir=self.img_dir, labels=df[self.target_col])
 
