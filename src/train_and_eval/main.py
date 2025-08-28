@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 
 import hydra
@@ -19,8 +20,12 @@ from train_and_eval.neuralnet_trainer import NeuralNetTrainer
 def main(cfg: DictConfig):
     logger.info(OmegaConf.to_yaml(cfg, resolve=True))
 
+    # Enable reproducibility
     torch.manual_seed(seed=42)
     np.random.seed(42)
+    random.seed(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     # Data splitting is now handled within each trainer's setup() method
 

@@ -63,6 +63,7 @@ class NeuralNetTrainer(BaseTrainer):
             accelerator="auto",
             max_epochs=self.train_cfg.max_epochs,
             devices=self.train_cfg.devices,
+            deterministic=True,  # Enable reproducibility
             enable_progress_bar=True,
             log_every_n_steps=self.train_cfg.log_every_n_steps,
             enable_model_summary=False,  # optional
