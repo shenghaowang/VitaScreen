@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import hydra
+import numpy as np
 import pandas as pd
 import torch
 from loguru import logger
@@ -19,6 +20,7 @@ def main(cfg: DictConfig):
     logger.info(OmegaConf.to_yaml(cfg, resolve=True))
 
     torch.manual_seed(seed=42)
+    np.random.seed(42)
 
     # Data splitting is now handled within each trainer's setup() method
 
