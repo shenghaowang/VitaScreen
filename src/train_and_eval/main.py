@@ -6,6 +6,7 @@ import torch
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 
+from data.cdc import IgtdDataModule, NeuralNetDataModule
 from model.model_type import ModelType
 from train_and_eval.ensemble_tree_trainer import EnsembleTreeTrainer
 from train_and_eval.evaluate import compute_metrics
@@ -22,7 +23,7 @@ def main(cfg: DictConfig):
 
     # Initialize trainer based on model type - all use cross-validation
     match cfg.model.name:
-        case ModelType.MLP.value | ModelType.NCTD.value | ModelType.IGTD.value:
+        case ModelType.MLP.value | ModelType.NCTD.value:
             trainer = NeuralNetTrainer(
                 model_cfg=cfg.model,
                 train_cfg=cfg.train,
@@ -30,17 +31,42 @@ def main(cfg: DictConfig):
             trainer.setup(data_cfg=cfg.data)
             trainer.cross_validate(data_file=Path(cfg.data.file_path))
 
+            logger.info("Evaluating the model on the test set ...")
+            dm = NeuralNetDataModule(data_file=Path(cfg.data.file_path))
+            train_idx, val_idx = trainer.k_fold_indices[0]
+            dm.setup(train_idx=train_idx, val_idx=val_idx, test_idx=trainer.test_idx)
+            y_test, y_pred = trainer.evaluate(dm.test_dataloader())
+
+        case ModelType.IGTD.value:
+            trainer = NeuralNetTrainer(
+                model_cfg=cfg.model,
+                train_cfg=cfg.train,
+            )
+            trainer.setup(data_cfg=cfg.data)
+            trainer.cross_validate(
+                data_file=Path(cfg.data.file_path), img_dir=Path(cfg.data.img_dir)
+            )
+
+            logger.info("Evaluating the model on the test set ...")
+            dm = IgtdDataModule(
+                data_file=Path(cfg.data.file_path), img_dir=Path(cfg.data.img_dir)
+            )
+            train_idx, val_idx = trainer.k_fold_indices[0]
+            dm.setup(train_idx=train_idx, val_idx=val_idx, test_idx=trainer.test_idx)
+            y_test, y_pred = trainer.evaluate(dm.test_dataloader())
+
         case ModelType.CatBoost.value:
             trainer = EnsembleTreeTrainer(hyperparams=cfg.model.hyperparams)
             trainer.setup(data_cfg=cfg.data)
             trainer.cross_validate()
 
+            logger.info("Evaluating the model on the test set ...")
+            y_test, y_pred = trainer.evaluate()
+
         case _:
             raise ValueError(f"Unsupported model type: {cfg.model.name}")
 
-    # Evaluate the model
-    logger.info("Evaluating the model...")
-    y_test, y_pred = trainer.evaluate()
+    # Compute metrics
     results = [compute_metrics(y_test, y_pred, avg) for avg in cfg.results.avg_options]
 
     # Export results

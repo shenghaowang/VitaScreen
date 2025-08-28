@@ -29,6 +29,7 @@ class NeuralNetTrainer(BaseTrainer):
         super().__init__()
         self.model_cfg = model_cfg
         self.train_cfg = train_cfg
+        self.best_model_path = None
 
     def init_trainer(self, model: ConvNet | MLP = ConvNet()):
         """Initialize the PyTorch Lightning trainer."""
@@ -53,7 +54,7 @@ class NeuralNetTrainer(BaseTrainer):
             monitor="val_loss",  # same metric as EarlyStopping
             mode="min",
             save_top_k=1,  # keep only the best model
-            filename="best-checkpoint",
+            filename=f"best-checkpoint-{self.model_cfg.name}",
             verbose=False,
             save_weights_only=False,  # save full model (or True for just weights)
         )
@@ -68,9 +69,7 @@ class NeuralNetTrainer(BaseTrainer):
             callbacks=[metrics_logger, early_stop_callback, self.checkpoint_callback],
         )
 
-    def cross_validate(
-        self, data_file: Path, img_dir: Path = None, target_col: str = "Label"
-    ) -> None:
+    def cross_validate(self, data_file: Path, img_dir: Path = None) -> None:
         """Train the model with cross validation."""
 
         match self.model_cfg.name:
@@ -101,7 +100,7 @@ class NeuralNetTrainer(BaseTrainer):
             )
 
             # Evaluate on validation set
-            y_val, y_pred = self.evaluate()
+            y_val, y_pred = self.evaluate(dm.val_dataloader())
             val_metrics = compute_metrics(y_val, y_pred, avg_option="binary")
 
             logger.info(f"Validation Accuracy: {val_metrics['accuracy']:.4f}")
@@ -133,20 +132,20 @@ class NeuralNetTrainer(BaseTrainer):
 
         logger.info(f"Training time: {(end_time - start_time):.2f} seconds")
 
-    def test(self) -> None:
-        """Load the best model and test the performance."""
-
-        classifier = DiabetesRiskClassifier.load_from_checkpoint(
-            self.checkpoint_callback.best_model_path,
-        )
-        output = self.trainer.test(classifier, self.test_loader)
-        logger.debug(f"Test output: {output}")
-
     def evaluate(self, data_loader: DataLoader) -> Tuple[List[float], List[float]]:
         """
         Evaluate the model on the validation / test set.
         """
-        self.model.eval()
+        if self.best_model_path is not None:
+            # For evaluating on the test set
+            classifier = DiabetesRiskClassifier.load_from_checkpoint(
+                self.best_model_path
+            )
+
+        else:
+            classifier = self.model
+
+        classifier.eval()
         y_pred = []
         y_true = []
 
