@@ -69,9 +69,10 @@ class NeuralNetTrainer(BaseTrainer):
             callbacks=[metrics_logger, early_stop_callback, self.checkpoint_callback],
         )
 
-    def cross_validate(self, data_file: Path, img_dir: Path = None) -> None:
+    def cross_validate(
+        self, data_file: Path, img_dir: Path = None, transform=None
+    ) -> None:
         """Train the model with cross validation."""
-
         match self.model_cfg.name:
             case ModelType.MLP.value:
                 dm = NeuralNetDataModule(data_file=data_file)
@@ -91,7 +92,7 @@ class NeuralNetTrainer(BaseTrainer):
         best_f1_score = 0.0
         for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
             logger.info(f"Training fold {i + 1}/{len(self.k_fold_indices)}")
-            dm.setup(train_idx=train_idx, val_idx=val_idx)
+            dm.setup(train_idx=train_idx, val_idx=val_idx, transform=transform)
 
             self.init_trainer(model=model)
             self.train(

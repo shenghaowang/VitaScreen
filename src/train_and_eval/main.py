@@ -7,6 +7,7 @@ from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 
 from data.cdc import IgtdDataModule, NeuralNetDataModule
+from data.utils import nctd_transform
 from model.model_type import ModelType
 from train_and_eval.ensemble_tree_trainer import EnsembleTreeTrainer
 from train_and_eval.evaluate import compute_metrics
@@ -22,6 +23,7 @@ def main(cfg: DictConfig):
     # Data splitting is now handled within each trainer's setup() method
 
     # Initialize trainer based on model type - all use cross-validation
+    transform = nctd_transform if cfg.model.name == ModelType.NCTD.value else None
     match cfg.model.name:
         case ModelType.MLP.value | ModelType.NCTD.value:
             trainer = NeuralNetTrainer(
@@ -29,12 +31,19 @@ def main(cfg: DictConfig):
                 train_cfg=cfg.train,
             )
             trainer.setup(data_cfg=cfg.data)
-            trainer.cross_validate(data_file=Path(cfg.data.file_path))
+            trainer.cross_validate(
+                data_file=Path(cfg.data.file_path), transform=transform
+            )
 
             logger.info("Evaluating the model on the test set ...")
             dm = NeuralNetDataModule(data_file=Path(cfg.data.file_path))
             train_idx, val_idx = trainer.k_fold_indices[0]
-            dm.setup(train_idx=train_idx, val_idx=val_idx, test_idx=trainer.test_idx)
+            dm.setup(
+                train_idx=train_idx,
+                val_idx=val_idx,
+                test_idx=trainer.test_idx,
+                transform=transform,
+            )
             y_test, y_pred = trainer.evaluate(dm.test_dataloader())
 
         case ModelType.IGTD.value:
