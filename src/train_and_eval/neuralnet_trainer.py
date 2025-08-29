@@ -1,11 +1,13 @@
 import time
-from typing import List, Tuple, Union
+from pathlib import Path
+from typing import List, Tuple
 
-import pytorch_lightning as pl
+import lightning as L
 import torch
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from loguru import logger
 from omegaconf import DictConfig
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from torch.utils.data import DataLoader
 from torchinfo import summary
 
 from data.cdc import IgtdDataModule, NeuralNetDataModule
@@ -13,22 +15,21 @@ from model.classifier import DiabetesRiskClassifier
 from model.cnn import ConvNet
 from model.mlp import MLP
 from model.model_type import ModelType
+from train_and_eval.base_trainer import BaseTrainer
+from train_and_eval.evaluate import compute_metrics
 from train_and_eval.metrics_logger import MetricsLogger
 
 
-class NeuralNetTrainer:
+class NeuralNetTrainer(BaseTrainer):
     def __init__(
         self,
-        data_module: Union[IgtdDataModule, NeuralNetDataModule],
         model_cfg: DictConfig,
         train_cfg: DictConfig,
     ):
-        self.train_loader = data_module.train_dataloader()
-        self.val_loader = data_module.val_dataloader()
-        self.test_loader = data_module.test_dataloader()
-
+        super().__init__()
         self.model_cfg = model_cfg
         self.train_cfg = train_cfg
+        self.best_model_path = None
 
     def init_trainer(self, model: ConvNet | MLP = ConvNet()):
         """Initialize the PyTorch Lightning trainer."""
@@ -53,21 +54,73 @@ class NeuralNetTrainer:
             monitor="val_loss",  # same metric as EarlyStopping
             mode="min",
             save_top_k=1,  # keep only the best model
-            filename="best-checkpoint",
+            filename=f"best-checkpoint-{self.model_cfg.name}",
             verbose=False,
             save_weights_only=False,  # save full model (or True for just weights)
         )
 
-        self.trainer = pl.Trainer(
+        self.trainer = L.Trainer(
+            accelerator="auto",
             max_epochs=self.train_cfg.max_epochs,
             devices=self.train_cfg.devices,
+            deterministic=True,  # Enable reproducibility
             enable_progress_bar=True,
             log_every_n_steps=self.train_cfg.log_every_n_steps,
             enable_model_summary=False,  # optional
             callbacks=[metrics_logger, early_stop_callback, self.checkpoint_callback],
         )
 
-    def train(self):
+    def cross_validate(
+        self, data_file: Path, img_dir: Path = None, transform=None
+    ) -> None:
+        """Train the model with cross validation."""
+        match self.model_cfg.name:
+            case ModelType.MLP.value:
+                dm = NeuralNetDataModule(data_file=data_file)
+                model = MLP(input_dim=self.model_cfg.input_dim)
+
+            case ModelType.NCTD.value:
+                dm = NeuralNetDataModule(data_file=data_file)
+                model = ConvNet()
+
+            case ModelType.IGTD.value:
+                dm = IgtdDataModule(data_file=data_file, img_dir=img_dir)
+                model = ConvNet()
+
+            case _:
+                raise ValueError(f"Unsupported model type: {self.model_cfg.name}")
+
+        best_f1_score = 0.0
+        for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
+            logger.info(f"Training fold {i + 1}/{len(self.k_fold_indices)}")
+
+            if self.model_cfg.name == ModelType.IGTD.value:
+                dm.setup(train_idx=train_idx, val_idx=val_idx)
+
+            else:
+                dm.setup(train_idx=train_idx, val_idx=val_idx, transform=transform)
+
+            self.init_trainer(model=model)
+            self.train(
+                train_loader=dm.train_dataloader(),
+                val_loader=dm.val_dataloader(),
+            )
+
+            # Evaluate on validation set
+            y_val, y_pred = self.evaluate(dm.val_dataloader())
+            val_metrics = compute_metrics(y_val, y_pred, avg_option="binary")
+
+            logger.info(f"Validation Accuracy: {val_metrics['accuracy']:.4f}")
+            logger.info(f"Validation Precision: {val_metrics['precision']:.4f}")
+            logger.info(f"Validation Recall: {val_metrics['recall']:.4f}")
+            logger.info(f"Validation F1 Score: {val_metrics['f1_score']:.4f}")
+
+            # Track best model
+            if val_metrics["f1_score"] > best_f1_score:
+                best_f1_score = val_metrics["f1_score"]
+                self.best_model_path = self.checkpoint_callback.best_model_path
+
+    def train(self, train_loader: DataLoader, val_loader: DataLoader):
         logger.info("Training the model...")
 
         classifier = DiabetesRiskClassifier(
@@ -79,38 +132,38 @@ class NeuralNetTrainer:
         start_time = time.time()
         self.trainer.fit(
             classifier,
-            train_dataloaders=self.train_loader,
-            val_dataloaders=self.val_loader,
+            train_dataloaders=train_loader,
+            val_dataloaders=val_loader,
         )
         end_time = time.time()
 
         logger.info(f"Training time: {(end_time - start_time):.2f} seconds")
 
-    def test(self) -> None:
-        """Load the best model and test the performance."""
-
-        classifier = DiabetesRiskClassifier.load_from_checkpoint(
-            self.checkpoint_callback.best_model_path,
-        )
-        output = self.trainer.test(classifier, self.test_loader)
-        logger.debug(f"Test output: {output}")
-
-    def evaluate(self) -> Tuple[List[float], List[float]]:
+    def evaluate(self, data_loader: DataLoader) -> Tuple[List[float], List[float]]:
         """
-        Evaluate the model on the test set.
+        Evaluate the model on the validation / test set.
         """
-        self.model.eval()
+        if self.best_model_path is not None:
+            # For evaluating on the test set
+            classifier = DiabetesRiskClassifier.load_from_checkpoint(
+                self.best_model_path
+            )
+
+        else:
+            classifier = self.model
+
+        classifier.eval()
         y_pred = []
-        y_test = []
+        y_true = []
 
         with torch.no_grad():
-            for x, y in self.test_loader:
+            for x, y in data_loader:
 
                 logits = self.model(x)  # [B, 1]
                 probs = torch.sigmoid(logits)
                 preds = (probs > 0.5).long().squeeze()
 
                 y_pred.extend(preds.cpu().numpy())
-                y_test.extend(y.cpu().numpy())
+                y_true.extend(y.cpu().numpy())
 
-        return y_test, y_pred
+        return y_true, y_pred
