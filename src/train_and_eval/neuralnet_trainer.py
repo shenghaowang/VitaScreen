@@ -93,7 +93,12 @@ class NeuralNetTrainer(BaseTrainer):
         best_f1_score = 0.0
         for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
             logger.info(f"Training fold {i + 1}/{len(self.k_fold_indices)}")
-            dm.setup(train_idx=train_idx, val_idx=val_idx, transform=transform)
+
+            if self.model_cfg.name == ModelType.IGTD.value:
+                dm.setup(train_idx=train_idx, val_idx=val_idx)
+
+            else:
+                dm.setup(train_idx=train_idx, val_idx=val_idx, transform=transform)
 
             self.init_trainer(model=model)
             self.train(
