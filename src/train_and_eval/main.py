@@ -65,7 +65,7 @@ def main(cfg: DictConfig):
 
             logger.info("Evaluating the model on the test set ...")
             dm = IgtdDataModule(
-                data_file=Path(cfg.data.file_path), img_dir=Path(cfg.data.img_dir)
+                data_file=Path(cfg.data.file_path), img_dir=Path(cfg.igtd.img_dir)
             )
             train_idx, val_idx = trainer.k_fold_indices[0]
             dm.setup(train_idx=train_idx, val_idx=val_idx, test_idx=trainer.test_idx)
