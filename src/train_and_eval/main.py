@@ -60,7 +60,7 @@ def main(cfg: DictConfig):
             )
             trainer.setup(data_cfg=cfg.data)
             trainer.cross_validate(
-                data_file=Path(cfg.data.file_path), img_dir=Path(cfg.data.img_dir)
+                data_file=Path(cfg.data.file_path), img_dir=Path(cfg.igtd.img_dir)
             )
 
             logger.info("Evaluating the model on the test set ...")
