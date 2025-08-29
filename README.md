@@ -2,6 +2,8 @@
 
 VitaScreen is a prototype solution designed to predict the risk of diabetes using a combination of health indicators and socioeconomic factors. It leverages patient data to enable early risk assessment and support preventive healthcare strategies.
 
+![Methodology Diagram](img/methodology.png)
+
 ---
 
 ## 🚀 Features
