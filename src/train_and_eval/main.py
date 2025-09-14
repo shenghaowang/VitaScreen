@@ -30,9 +30,9 @@ def main(cfg: DictConfig):
     # Data splitting is now handled within each trainer's setup() method
 
     # Initialize trainer based on model type - all use cross-validation
-    transform = nctd_transform if cfg.model.name == ModelType.NCTD.value else None
-    match cfg.model.name:
-        case ModelType.MLP.value | ModelType.NCTD.value:
+    transform = nctd_transform if ModelType(cfg.model.name) == ModelType.NCTD else None
+    match ModelType(cfg.model.name):
+        case ModelType.MLP | ModelType.NCTD:
             trainer = NeuralNetTrainer(
                 model_cfg=cfg.model,
                 train_cfg=cfg.train,
@@ -53,7 +53,7 @@ def main(cfg: DictConfig):
             )
             y_test, y_pred = trainer.evaluate(dm.test_dataloader())
 
-        case ModelType.IGTD.value:
+        case ModelType.IGTD:
             trainer = NeuralNetTrainer(
                 model_cfg=cfg.model,
                 train_cfg=cfg.train,
@@ -71,7 +71,7 @@ def main(cfg: DictConfig):
             dm.setup(train_idx=train_idx, val_idx=val_idx, test_idx=trainer.test_idx)
             y_test, y_pred = trainer.evaluate(dm.test_dataloader())
 
-        case ModelType.CatBoost.value:
+        case ModelType.CatBoost:
             trainer = EnsembleTreeTrainer(hyperparams=cfg.model.hyperparams)
             trainer.setup(data_cfg=cfg.data)
             trainer.cross_validate()
