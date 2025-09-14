@@ -28,7 +28,7 @@ class BaseTrainer:
             Hydra/OmegaConf configuration containing:
                 - file_path: Path to the CDC dataset file.
                 - target_col: Name of the target variable column.
-                - downsample: Whether to downsample the data for addressing class imbalance.
+                - resampler: The resampling method to use for addressing class imbalance.
         """
         df = pd.read_csv(data_cfg.file_path)
 
@@ -38,7 +38,7 @@ class BaseTrainer:
         k_fold_indices, test_idx = split_data(
             X=self.X,
             y=self.y,
-            downsample=data_cfg.downsample,
+            resampler_name=data_cfg.resampler if "resampler" in data_cfg else None,
         )
 
         self.k_fold_indices = k_fold_indices

@@ -5,7 +5,8 @@ data:
   dir: data
   file_path: ${data.dir}/cdcNormalDiabetic.csv
   target_col: Label
-  downsample: false
+  # resampler: imblearn.over_sampling.SMOTE
+  resampler: imblearn.under_sampling.RandomUnderSampler
 
 train:
   max_epochs: 30

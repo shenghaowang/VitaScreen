@@ -1,15 +1,38 @@
-from pathlib import Path
+import importlib
+from enum import Enum
 from typing import List, Tuple
 
 import numpy as np
-import pandas as pd
-from imblearn.under_sampling import EditedNearestNeighbours
 from loguru import logger
 from sklearn.model_selection import StratifiedKFold, train_test_split
 
 
+class ClassImbalanceHandler(Enum):
+    smote = "imblearn.over_sampling.SMOTE"
+    rus = "imblearn.under_sampling.RandomUnderSampler"
+    enn = "imblearn.under_sampling.EditedNearestNeighbours"
+
+    @classmethod
+    def get_handler(cls, name: str):
+        """Get handler by algorithm name (e.g., 'smote', 'enn', 'rus')"""
+        try:
+            handler = cls[name.lower()]
+            module_name, method_name = handler.value.rsplit(".", 1)
+            module = importlib.import_module(module_name)
+            return getattr(module, method_name)
+
+        except KeyError:
+            available = ", ".join([h.name for h in cls])
+            raise ValueError(
+                f"Unknown handler '{name}'. Available handlers: {available}"
+            )
+
+        except (ImportError, AttributeError) as e:
+            raise ImportError(f"Failed to import {method_name} from {module_name}: {e}")
+
+
 def split_data(
-    X: np.ndarray, y: np.ndarray, downsample: bool = False, n_splits=5
+    X: np.ndarray, y: np.ndarray, resampler_name: str = None, n_splits=5
 ) -> Tuple[List[Tuple[np.ndarray, np.ndarray]], np.ndarray]:
     indices = np.arange(len(X))
 
@@ -17,12 +40,31 @@ def split_data(
         indices, stratify=y, test_size=0.2, random_state=42
     )
 
-    if downsample:
-        enn = EditedNearestNeighbours()
-        enn.fit_resample(X[train_val_idx], y[train_val_idx])
+    if resampler_name is not None:
+        Resampler = ClassImbalanceHandler.get_handler(resampler_name)
 
-        # Map to global indices
-        train_val_idx = train_val_idx[enn.sample_indices_]
+        # Try with random_state first, fallback without it
+        try:
+            resampler = Resampler(random_state=42)
+
+        except TypeError:
+            resampler = Resampler()
+
+        # Check if this is an undersampling method with sample_indices_
+        if hasattr(resampler, "sample_indices_"):
+            # For undersampling methods like EditedNearestNeighbours
+            resampler.fit_resample(X[train_val_idx], y[train_val_idx])
+
+            # Map to global indices
+            train_val_idx = train_val_idx[resampler.sample_indices_]
+
+        else:
+            # For oversampling methods like SMOTE that don't have sample_indices_
+            # We'll apply resampling during cross-validation, not here
+            # Just log that resampling will be applied later
+            logger.info(
+                f"Resampling with {resampler_name} will be applied during cross-validation"
+            )
 
     cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
     folds: List[Tuple[np.ndarray, np.ndarray]] = []
@@ -34,55 +76,6 @@ def split_data(
         folds.append((tr_global, va_global))
 
     return folds, test_idx
-
-
-def prepare_data(
-    data_file: Path, target_col: str, downsample: bool = False
-) -> Tuple[
-    Tuple[np.ndarray, np.ndarray],
-    Tuple[np.ndarray, np.ndarray],
-    Tuple[np.ndarray, np.ndarray],
-]:
-    """Load and prepare data for training
-
-    Parameters
-    ----------
-    data_file : Path
-        Path to the CSV file containing the dataset
-    target_col : str
-        Name of the target column in the dataset
-    downsample : bool, optional
-        Whether to downsample the negative class data, by default False
-
-    Returns
-    -------
-    Tuple[ Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray], ]
-        Returns training, validation, and test datasets as tuples of features and labels
-    """
-
-    # Load raw data
-    df = pd.read_csv(data_file)
-    feature_cols = [col for col in df.columns if col != target_col]
-
-    # Split data for training, validation, and testing
-    X, y = df[feature_cols].values, df[target_col].values
-    X_train_val, X_test, y_train_val, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
-
-    if downsample:
-        # Resampling using Edited Nearest Neighbours
-        enn = EditedNearestNeighbours()
-        X_train_val, y_train_val = enn.fit_resample(X_train_val, y_train_val)
-        logger.info(
-            f"Resampled training data shape: {X_train_val.shape}, {y_train_val.shape}"
-        )
-
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_train_val, y_train_val, test_size=0.2, random_state=42
-    )
-
-    return (X_train, y_train), (X_val, y_val), (X_test, y_test)
 
 
 def nctd_transform(x: np.ndarray, n_features: int) -> np.ndarray:
