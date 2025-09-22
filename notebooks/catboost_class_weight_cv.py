@@ -1,13 +1,14 @@
 # %%
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from catboost import CatBoostClassifier, Pool
 from sklearn.model_selection import StratifiedKFold, train_test_split
-
-from notebooks.utils import compute_metrics
+from utils import compute_metrics
 
 # %%
 # Load the dataset
-df = pd.read_csv("data/cdcNormalDiabetic.csv")
+df = pd.read_csv("../data/cdcNormalDiabetic.csv")
 print(df.shape)
 print(df.columns)
 
@@ -36,6 +37,7 @@ cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 random_state = 42
 early_stopping_rounds = 50
 best_score = 0
+best_cv_metrics = None
 for fold, (train_idx, val_idx) in enumerate(cv.split(X, y), 1):
     print(f"\nFold {fold}")
     X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
@@ -69,7 +71,31 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X, y), 1):
 
     if val_metrics["f1_score"] > best_score:
         best_score = val_metrics["f1_score"]
-        model.save_model(f"best_model.cbm")
+        model.save_model("best_model.cbm")
+        best_cv_metrics = val_metrics
+
+print("Test validation metrics of the best model:")
+for metric, value in best_cv_metrics.items():
+    print(f"Best Model {metric}: {value}")
+
+# %%
+# Examine feature importance
+model.load_model("best_model.cbm")
+importances = model.get_feature_importance(type="PredictionValuesChange")
+for name, score in zip(model.feature_names_, importances):
+    print(f"{name}: {score:.4f}")
+
+indices = np.argsort(importances)[::-1]
+
+plt.figure(figsize=(8, 6))
+plt.title("CDC Dataset Feature Importance")
+plt.bar(range(len(importances)), importances[indices], align="center")
+plt.xticks(
+    range(len(importances)), np.array(model.feature_names_)[indices], rotation=90
+)
+plt.tight_layout()
+plt.show()
+
 
 # %%
 # Evaluate on the test set
