@@ -91,6 +91,7 @@ class NeuralNetTrainer(BaseTrainer):
                 raise ValueError(f"Unsupported model type: {self.model_cfg.name}")
 
         best_f1_score = 0.0
+        best_cv_metrics = None
         for i, (train_idx, val_idx) in enumerate(self.k_fold_indices):
             logger.info(f"Training fold {i + 1}/{len(self.k_fold_indices)}")
 
@@ -108,7 +109,7 @@ class NeuralNetTrainer(BaseTrainer):
 
             # Evaluate on validation set
             y_val, y_pred = self.evaluate(dm.val_dataloader())
-            val_metrics = compute_metrics(y_val, y_pred, avg_option="binary")
+            val_metrics = compute_metrics(y_val, y_pred, avg_option="macro")
 
             logger.info(f"Validation Accuracy: {val_metrics['accuracy']:.4f}")
             logger.info(f"Validation Precision: {val_metrics['precision']:.4f}")
@@ -119,6 +120,11 @@ class NeuralNetTrainer(BaseTrainer):
             if val_metrics["f1_score"] > best_f1_score:
                 best_f1_score = val_metrics["f1_score"]
                 self.best_model_path = self.checkpoint_callback.best_model_path
+                best_cv_metrics = val_metrics
+
+        logger.info("Test validation metrics of the best model:")
+        for metric, value in best_cv_metrics.items():
+            logger.info(f"Best Model {metric}: {value}")
 
     def train(self, train_loader: DataLoader, val_loader: DataLoader):
         logger.info("Training the model...")
