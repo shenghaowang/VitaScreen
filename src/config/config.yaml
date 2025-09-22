@@ -6,6 +6,22 @@ data:
   file_path: ${data.dir}/cdcNormalDiabetic.csv
   target_col: Label
   downsample: false
+  feature_cols:
+    - Age
+    - GenHlth
+    - BMI
+    - HighBP
+    - HighChol
+    - Income
+    - CholCheck
+    - Sex
+    - Education
+    - MentHlth
+    - PhysHlth
+    - HvyAlcoholConsump
+    - DiffWalk
+    - HeartDiseaseorAttack
+    - Smoker
 
 train:
   max_epochs: 30

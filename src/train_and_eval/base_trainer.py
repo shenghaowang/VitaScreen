@@ -32,7 +32,10 @@ class BaseTrainer:
         """
         df = pd.read_csv(data_cfg.file_path)
 
-        feature_cols = [col for col in df.columns if col != data_cfg.target_col]
+        if data_cfg.feature_cols:
+            feature_cols = data_cfg.feature_cols
+        else:
+            feature_cols = [col for col in df.columns if col != data_cfg.target_col]
         self.X, self.y = df[feature_cols].values, df[data_cfg.target_col].values
 
         k_fold_indices, test_idx = split_data(
