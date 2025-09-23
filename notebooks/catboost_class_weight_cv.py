@@ -62,7 +62,7 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X, y), 1):
     )
 
     y_pred = model.predict(X_val)
-    val_metrics = compute_metrics(y_val, y_pred, avg_option="binary")
+    val_metrics = compute_metrics(y_val, y_pred, avg_option="macro")
 
     print(f"Validation Accuracy: {val_metrics['accuracy']:.4f}")
     print(f"Validation Precision: {val_metrics['precision']:.4f}")
@@ -105,8 +105,6 @@ avg_options = ["micro", "macro", "weighted", "binary"]
 
 results = [compute_metrics(y_test, y_pred, avg) for avg in avg_options]
 results_df = pd.DataFrame(results)
-results_df.to_csv("results.csv", index=False)
+# results_df.to_csv("results.csv", index=False)
 
 print(results_df)
-
-# binary  0.811731   0.432203  0.646644  0.518111
