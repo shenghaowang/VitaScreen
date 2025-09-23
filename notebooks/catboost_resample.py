@@ -51,10 +51,18 @@ random_state = 42
 early_stopping_rounds = 50
 best_score = 0
 best_cv_metrics = None
-for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val_resampled, y_train_val_resampled), 1):
+for fold, (train_idx, val_idx) in enumerate(
+    cv.split(X_train_val_resampled, y_train_val_resampled), 1
+):
     print(f"\nFold {fold}")
-    X_train, X_val = X_train_val_resampled.iloc[train_idx], X_train_val_resampled.iloc[val_idx]
-    y_train, y_val = y_train_val_resampled.iloc[train_idx], y_train_val_resampled.iloc[val_idx]
+    X_train, X_val = (
+        X_train_val_resampled.iloc[train_idx],
+        X_train_val_resampled.iloc[val_idx],
+    )
+    y_train, y_val = (
+        y_train_val_resampled.iloc[train_idx],
+        y_train_val_resampled.iloc[val_idx],
+    )
 
     train_pool = Pool(data=X_train, label=y_train)
     val_pool = Pool(data=X_val, label=y_val)
