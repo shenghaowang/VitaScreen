@@ -71,16 +71,20 @@ class NeuralNetTrainer(BaseTrainer):
         )
 
     def cross_validate(
-        self, data_file: Path, img_dir: Path = None, transform=None
+        self,
+        data_file: Path,
+        img_dir: Path = None,
+        transform=None,
+        feature_cols: List[str] = None,
     ) -> None:
         """Train the model with cross validation."""
         match self.model_cfg.name:
             case ModelType.MLP.value:
-                dm = NeuralNetDataModule(data_file=data_file)
+                dm = NeuralNetDataModule(data_file=data_file, feature_cols=feature_cols)
                 model = MLP(input_dim=self.model_cfg.input_dim)
 
             case ModelType.NCTD.value:
-                dm = NeuralNetDataModule(data_file=data_file)
+                dm = NeuralNetDataModule(data_file=data_file, feature_cols=feature_cols)
                 model = ConvNet()
 
             case ModelType.IGTD.value:

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Tuple
+from typing import Callable, List, Tuple
 
 import lightning as L
 import numpy as np
@@ -272,6 +272,7 @@ class NeuralNetDataModule(CDCDataModule):
         self,
         data_file: Path,
         target_col: str = "Label",
+        feature_cols: List[str] = None,
         batch_size: int = 64,
         num_workers: int = 4,
     ):
@@ -300,7 +301,9 @@ class NeuralNetDataModule(CDCDataModule):
             raise FileNotFoundError(f"Data file {self.data_file} does not exist.")
 
         df = pd.read_csv(self.data_file)
-        feature_cols = [col for col in df.columns if col != self.target_col]
+        if feature_cols is None:
+            feature_cols = [col for col in df.columns if col != self.target_col]
+
         self.X, self.y = df[feature_cols].values, df[self.target_col].values
 
     def setup(
