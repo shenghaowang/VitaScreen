@@ -1,8 +1,8 @@
 # %%
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from catboost import CatBoostClassifier, Pool
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import EditedNearestNeighbours, RandomUnderSampler
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from utils import compute_metrics
 
@@ -32,16 +32,37 @@ X_train_val, X_test, y_train_val, y_test = train_test_split(
 )
 X_train_val.shape, y_train_val.shape, X_test.shape, y_test.shape
 
+# %%
+# Resampling using SMOTE / ENN / RUS
+resampler = SMOTE(random_state=42)
+# enn = EditedNearestNeighbours()
+# resampler = RandomUnderSampler(random_state=42)
+X_train_val_resampled, y_train_val_resampled = resampler.fit_resample(
+    X_train_val, y_train_val
+)
+X_train_val_resampled.shape, y_train_val_resampled.shape
+
+# %%
+y_train_val_resampled.value_counts()
+
 # %% Training loop
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 random_state = 42
 early_stopping_rounds = 50
 best_score = 0
 best_cv_metrics = None
-for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 1):
+for fold, (train_idx, val_idx) in enumerate(
+    cv.split(X_train_val_resampled, y_train_val_resampled), 1
+):
     print(f"\nFold {fold}")
-    X_train, X_val = X_train_val.iloc[train_idx], X_train_val.iloc[val_idx]
-    y_train, y_val = y_train_val.iloc[train_idx], y_train_val.iloc[val_idx]
+    X_train, X_val = (
+        X_train_val_resampled.iloc[train_idx],
+        X_train_val_resampled.iloc[val_idx],
+    )
+    y_train, y_val = (
+        y_train_val_resampled.iloc[train_idx],
+        y_train_val_resampled.iloc[val_idx],
+    )
 
     train_pool = Pool(data=X_train, label=y_train)
     val_pool = Pool(data=X_val, label=y_val)
@@ -52,8 +73,6 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
         max_depth=10,
         verbose=0,
         random_seed=random_state,
-        # auto_class_weights='SqrtBalanced',  # better than 'Balanced'
-        class_weights=[1, 3],  # Adjust class weights for imbalance
         eval_metric="AUC",
     )
 
@@ -77,25 +96,6 @@ for fold, (train_idx, val_idx) in enumerate(cv.split(X_train_val, y_train_val), 
 print("Test validation metrics of the best model:")
 for metric, value in best_cv_metrics.items():
     print(f"Best Model {metric}: {value}")
-
-# %%
-# Examine feature importance
-model.load_model("best_model.cbm")
-importances = model.get_feature_importance(type="PredictionValuesChange")
-for name, score in zip(model.feature_names_, importances):
-    print(f"{name}: {score:.4f}")
-
-indices = np.argsort(importances)[::-1]
-
-plt.figure(figsize=(8, 6))
-plt.title("CDC Dataset Feature Importance")
-plt.bar(range(len(importances)), importances[indices], align="center")
-plt.xticks(
-    range(len(importances)), np.array(model.feature_names_)[indices], rotation=90
-)
-plt.tight_layout()
-plt.show()
-
 
 # %%
 # Evaluate on the test set

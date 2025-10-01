@@ -39,11 +39,20 @@ def main(cfg: DictConfig):
             )
             trainer.setup(data_cfg=cfg.data)
             trainer.cross_validate(
-                data_file=Path(cfg.data.file_path), transform=transform
+                data_file=Path(cfg.data.file_path),
+                transform=transform,
+                feature_cols=cfg.data.feature_cols
+                if "feature_cols" in cfg.data
+                else None,
             )
 
             logger.info("Evaluating the model on the test set ...")
-            dm = NeuralNetDataModule(data_file=Path(cfg.data.file_path))
+            dm = NeuralNetDataModule(
+                data_file=Path(cfg.data.file_path),
+                feature_cols=cfg.data.feature_cols
+                if "feature_cols" in cfg.data
+                else None,
+            )
             train_idx, val_idx = trainer.k_fold_indices[0]
             dm.setup(
                 train_idx=train_idx,
