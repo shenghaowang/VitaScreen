@@ -32,7 +32,7 @@ class BaseTrainer:
         """
         df = pd.read_csv(data_cfg.file_path)
 
-        if data_cfg.feature_cols:
+        if "feature_cols" in data_cfg:
             feature_cols = data_cfg.feature_cols
         else:
             feature_cols = [col for col in df.columns if col != data_cfg.target_col]
