@@ -1,6 +1,16 @@
 name: catboost
 
-# hyperparameters for customizing class weights
+# Baseline hyperparameters for tuning
+# hyperparams:
+#   iterations: 1000
+#   learning_rate: 0.01
+#   max_depth: 10
+#   verbose: 0
+#   random_seed: 42
+#   eval_metric: AUC
+#   class_weights: [1, 3]
+
+# Original dataset x customized class weights
 hyperparams:
   iterations: 1000
   verbose: 0
@@ -18,7 +28,7 @@ hyperparams:
   border_count: 242
   grow_policy: Depthwise
 
-# hyperparameters for ENN
+# Original dataset x ENN
 # hyperparams:
 #   iterations: 1000
 #   verbose: 0
@@ -35,15 +45,75 @@ hyperparams:
 #   border_count: 126
 #   grow_policy: Depthwise
 
-# Baseline hyperparameters for tuning
+# Dataset after feature engineering x customized class weights
 # hyperparams:
 #   iterations: 1000
-#   learning_rate: 0.01
-#   max_depth: 10
 #   verbose: 0
 #   random_seed: 42
 #   eval_metric: AUC
 #   class_weights: [1, 3]
+#   learning_rate: 0.11743651961356788
+#   max_depth: 12
+#   subsample: 0.6486434988314246
+#   colsample_bylevel: 0.7838176376440327
+#   min_data_in_leaf: 49
+#   l2_leaf_reg: 4.021579333160483
+#   random_strength: 1.90132481411361
+#   bagging_temperature: 0.2685141247901936
+#   border_count: 243
+#   grow_policy: Lossguide
+
+# Dataset after feature engineering x ENN
+# hyperparams:
+#   iterations: 1000
+#   verbose: 0
+#   random_seed: 42
+#   eval_metric: AUC
+#   learning_rate: 0.010489030807812456
+#   max_depth: 12
+#   subsample: 0.6628035815139937
+#   colsample_bylevel: 0.8222313136450979
+#   min_data_in_leaf: 8
+#   l2_leaf_reg: 1.1758580200346394
+#   random_strength: 0.00017733091929676906
+#   bagging_temperature: 0.17099447601983578
+#   border_count: 152
+#   grow_policy: Depthwise
+
+# 15 selected features x customized class weights
+# hyperparams:
+#   iterations: 1000
+#   verbose: 0
+#   random_seed: 42
+#   eval_metric: AUC
+#   class_weights: [1, 3]
+#   learning_rate: 0.029433327671998657
+#   max_depth: 3
+#   subsample: 0.804405864487038
+#   colsample_bylevel: 0.7580173868223173
+#   min_data_in_leaf: 23
+#   l2_leaf_reg: 7.879668961798419
+#   random_strength: 0.00031498954867148455
+#   bagging_temperature: 0.3352978387310267
+#   border_count: 247
+#   grow_policy: Lossguide
+
+# 15 selected features x ENN
+# hyperparams:
+#   iterations: 1000
+#   verbose: 0
+#   random_seed: 42
+#   eval_metric: AUC
+#   learning_rate: 0.014487403956587177
+#   max_depth: 12
+#   subsample: 0.7761615743034963
+#   colsample_bylevel: 0.7490907648119899
+#   min_data_in_leaf: 24
+#   l2_leaf_reg: 2.702541688882471
+#   random_strength: 0.10458863026432662
+#   bagging_temperature: 0.6512454805574379
+#   border_count: 245
+#   grow_policy: Depthwise
 
 hyperparams_search_space:
   learning_rate:
