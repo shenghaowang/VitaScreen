@@ -99,6 +99,9 @@ def main(cfg: DictConfig):
     results_df.to_csv(cfg.results.file_path, index=False)
     logger.info(f"Predictions for the test set saved to {cfg.results.file_path}")
 
+    # Export predicted probabilities
+    trainer.export_prob(output_path=Path(cfg.results.prob_path))
+
 
 if __name__ == "__main__":
     main()
