@@ -62,6 +62,16 @@ def main(cfg: DictConfig):
             )
             y_test, y_pred = trainer.evaluate(dm.test_dataloader())
 
+            # Export predicted probabilities
+            trainer.export_prob(
+                data_file=Path(cfg.data.file_path),
+                output_path=Path(cfg.results.prob_path),
+                transform=transform,
+                feature_cols=cfg.data.feature_cols
+                if "feature_cols" in cfg.data
+                else None,
+            )
+
         case ModelType.IGTD.value:
             trainer = NeuralNetTrainer(
                 model_cfg=cfg.model,
@@ -88,6 +98,9 @@ def main(cfg: DictConfig):
             logger.info("Evaluating the model on the test set ...")
             y_test, y_pred = trainer.evaluate()
 
+            # Export predicted probabilities
+            trainer.export_prob(output_path=Path(cfg.results.prob_path))
+
         case _:
             raise ValueError(f"Unsupported model type: {cfg.model.name}")
 
@@ -98,9 +111,6 @@ def main(cfg: DictConfig):
     results_df = pd.DataFrame(results)
     results_df.to_csv(cfg.results.file_path, index=False)
     logger.info(f"Predictions for the test set saved to {cfg.results.file_path}")
-
-    # Export predicted probabilities
-    trainer.export_prob(output_path=Path(cfg.results.prob_path))
 
 
 if __name__ == "__main__":
