@@ -6,22 +6,22 @@ data:
   file_path: ${data.dir}/cdcNormalDiabetic.csv
   target_col: Label
   downsample: false
-  feature_cols:
-    - Age
-    - GenHlth
-    - BMI
-    - HighBP
-    - HighChol
-    - Income
-    - CholCheck
-    - Sex
-    - Education
-    - MentHlth
-    - PhysHlth
-    - HvyAlcoholConsump
-    - DiffWalk
-    - HeartDiseaseorAttack
-    - Smoker
+  # feature_cols:
+  #   - Age
+  #   - GenHlth
+  #   - BMI
+  #   - HighBP
+  #   - HighChol
+  #   - Income
+  #   - CholCheck
+  #   - Sex
+  #   - Education
+  #   - MentHlth
+  #   - PhysHlth
+  #   - HvyAlcoholConsump
+  #   - DiffWalk
+  #   - HeartDiseaseorAttack
+  #   - Smoker
 
 train:
   max_epochs: 30
@@ -36,6 +36,7 @@ results:
     - weighted
     - binary
   file_path: results.csv
+  prob_path: catboost_prob.csv
 
 igtd:
   nrows: 14
