@@ -36,7 +36,7 @@ results:
     - weighted
     - binary
   file_path: results.csv
-  prob_path: catboost_prob.csv
+  prob_path: prob/cb_f21_cw_prob.csv
 
 igtd:
   nrows: 14
