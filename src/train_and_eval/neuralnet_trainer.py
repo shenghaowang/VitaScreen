@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 import lightning as L
+import pandas as pd
 import torch
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from loguru import logger
@@ -177,3 +178,87 @@ class NeuralNetTrainer(BaseTrainer):
                 y_true.extend(y.cpu().numpy())
 
         return y_true, y_pred
+
+    def export_prob(
+        self,
+        data_file: Path,
+        output_path: Path,
+        img_dir: Path = None,
+        transform=None,
+        feature_cols: List[str] = None,
+    ):
+        if self.best_model_path is not None:
+            # For evaluating on the test set
+            classifier = DiabetesRiskClassifier.load_from_checkpoint(
+                self.best_model_path
+            )
+
+        else:
+            classifier = self.model
+
+        match self.model_cfg.name:
+            case ModelType.MLP.value:
+                dm = NeuralNetDataModule(data_file=data_file, feature_cols=feature_cols)
+
+            case ModelType.NCTD.value:
+                dm = NeuralNetDataModule(data_file=data_file, feature_cols=feature_cols)
+
+            case ModelType.IGTD.value:
+                dm = IgtdDataModule(data_file=data_file, img_dir=img_dir)
+
+            case _:
+                raise ValueError(f"Unsupported model type: {self.model_cfg.name}")
+
+        train_idx, val_idx = self.k_fold_indices[0]
+        if self.model_cfg.name == ModelType.IGTD.value:
+            dm.setup(train_idx=train_idx, val_idx=val_idx, test_idx=self.test_idx)
+
+        else:
+            dm.setup(
+                train_idx=train_idx,
+                val_idx=val_idx,
+                test_idx=self.test_idx,
+                transform=transform,
+            )
+
+        prob_dfs = []
+        classifier.eval()
+
+        for split, indices, dataset in zip(
+            ["train", "val", "test"],
+            [train_idx, val_idx, self.test_idx],
+            [dm.train_dataset, dm.val_dataset, dm.test_dataset],
+        ):
+            # Create dataloader without shuffling to preserve index order
+            data_loader = DataLoader(
+                dataset,
+                batch_size=self.train_cfg.batch_size,
+                shuffle=False,  # Important: no shuffling for export
+                num_workers=0,  # Use single worker to ensure consistent order
+            )
+
+            y_prob = []
+            y_true = []
+
+            with torch.no_grad():
+                for x, y in data_loader:
+
+                    logits = self.model(x)  # [B, 1]
+                    probs = torch.sigmoid(logits).squeeze().reshape(-1)
+
+                    y_prob.extend(probs.cpu().numpy())
+                    y_true.extend(y.cpu().numpy())
+
+            df = pd.DataFrame(
+                {
+                    "id": indices,
+                    "split": split,
+                    "y_true": y_true,
+                    "y_prob": y_prob,
+                }
+            )
+            prob_dfs.append(df)
+
+        all_probs = pd.concat(prob_dfs).sort_values(by="id")
+        all_probs.to_csv(output_path, index=False)
+        logger.info(f"Predicted probabilities exported to {output_path}")

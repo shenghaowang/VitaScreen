@@ -62,6 +62,16 @@ def main(cfg: DictConfig):
             )
             y_test, y_pred = trainer.evaluate(dm.test_dataloader())
 
+            # Export predicted probabilities
+            trainer.export_prob(
+                data_file=Path(cfg.data.file_path),
+                output_path=Path(cfg.results.prob_path),
+                transform=transform,
+                feature_cols=cfg.data.feature_cols
+                if "feature_cols" in cfg.data
+                else None,
+            )
+
         case ModelType.IGTD.value:
             trainer = NeuralNetTrainer(
                 model_cfg=cfg.model,
@@ -80,6 +90,17 @@ def main(cfg: DictConfig):
             dm.setup(train_idx=train_idx, val_idx=val_idx, test_idx=trainer.test_idx)
             y_test, y_pred = trainer.evaluate(dm.test_dataloader())
 
+            # Export predicted probabilities
+            trainer.export_prob(
+                data_file=Path(cfg.data.file_path),
+                output_path=Path(cfg.results.prob_path),
+                img_dir=Path(cfg.igtd.img_dir),
+                transform=transform,
+                feature_cols=cfg.data.feature_cols
+                if "feature_cols" in cfg.data
+                else None,
+            )
+
         case ModelType.CatBoost.value:
             trainer = EnsembleTreeTrainer(hyperparams=cfg.model.hyperparams)
             trainer.setup(data_cfg=cfg.data)
@@ -87,6 +108,9 @@ def main(cfg: DictConfig):
 
             logger.info("Evaluating the model on the test set ...")
             y_test, y_pred = trainer.evaluate()
+
+            # Export predicted probabilities
+            trainer.export_prob(output_path=Path(cfg.results.prob_path))
 
         case _:
             raise ValueError(f"Unsupported model type: {cfg.model.name}")

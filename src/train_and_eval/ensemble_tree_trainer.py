@@ -1,6 +1,8 @@
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
+import pandas as pd
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
 
@@ -83,3 +85,26 @@ class EnsembleTreeTrainer(BaseTrainer):
         y_pred = self.best_model.predict(self.X[self.test_idx])
 
         return self.y[self.test_idx], y_pred
+
+    def export_prob(self, output_path: Path):
+        if self.best_model is None:
+            raise ValueError("No best model found. Please train the model first.")
+
+        prob_dfs = []
+        train_idx, val_idx = self.k_fold_indices[0]
+        for split, indices in zip(
+            ["train", "val", "test"], [train_idx, val_idx, self.test_idx]
+        ):
+            df = pd.DataFrame(
+                {
+                    "id": indices,
+                    "split": split,
+                    "y_true": self.y[indices],
+                    "y_prob": self.best_model.predict_proba(self.X[indices])[:, 1],
+                }
+            )
+            prob_dfs.append(df)
+
+        all_probs = pd.concat(prob_dfs).sort_values(by="id")
+        all_probs.to_csv(output_path, index=False)
+        logger.info(f"Predicted probabilities exported to {output_path}")

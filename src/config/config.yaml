@@ -6,22 +6,22 @@ data:
   file_path: ${data.dir}/cdcNormalDiabetic.csv
   target_col: Label
   downsample: false
-  feature_cols:
-    - Age
-    - GenHlth
-    - BMI
-    - HighBP
-    - HighChol
-    - Income
-    - CholCheck
-    - Sex
-    - Education
-    - MentHlth
-    - PhysHlth
-    - HvyAlcoholConsump
-    - DiffWalk
-    - HeartDiseaseorAttack
-    - Smoker
+  # feature_cols:
+  #   - Age
+  #   - GenHlth
+  #   - BMI
+  #   - HighBP
+  #   - HighChol
+  #   - Income
+  #   - CholCheck
+  #   - Sex
+  #   - Education
+  #   - MentHlth
+  #   - PhysHlth
+  #   - HvyAlcoholConsump
+  #   - DiffWalk
+  #   - HeartDiseaseorAttack
+  #   - Smoker
 
 train:
   max_epochs: 30
@@ -36,17 +36,20 @@ results:
     - weighted
     - binary
   file_path: results.csv
+  prob_path: prob/cb_f21_cw_prob.csv
 
 igtd:
   nrows: 14
   ncols: 18
+  # nrows: 15
+  # ncols: 9
   save_image_size: 3
   max_step: 30000
   val_step: 300
   fea_dist_method: "Euclidean"
   image_dist_method: "Euclidean"
   error: "abs"
-  output_dir: ${data.dir}/IGTD
+  output_dir: ${data.dir}/IGTD_f21
   img_dir: ${igtd.output_dir}/data
 
 # Hyperparameter tuning
