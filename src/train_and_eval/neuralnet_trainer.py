@@ -224,9 +224,6 @@ class NeuralNetTrainer(BaseTrainer):
         prob_dfs = []
         classifier.eval()
 
-        # Create dataloaders without shuffling to maintain order
-        from torch.utils.data import DataLoader
-
         for split, indices, dataset in zip(
             ["train", "val", "test"],
             [train_idx, val_idx, self.test_idx],
