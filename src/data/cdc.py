@@ -111,7 +111,10 @@ class IgtdCDCDataset(Dataset):
             If the labels series does not cover all required indices.
         """
         self.img_dir = img_dir
-        self.img_files = sorted(img_dir.glob("*_image.png"))
+        # Sort files numerically by index to match CSV row order
+        self.img_files = sorted(
+            img_dir.glob("*_image.png"), key=lambda f: int(f.name.split("_")[1])
+        )
 
         # Extract indices from filenames like _123_image.png
         self.indices = [int(f.name.split("_")[1]) for f in self.img_files]
