@@ -41,13 +41,15 @@ results:
 igtd:
   nrows: 14
   ncols: 18
+  # nrows: 15
+  # ncols: 9
   save_image_size: 3
   max_step: 30000
   val_step: 300
   fea_dist_method: "Euclidean"
   image_dist_method: "Euclidean"
   error: "abs"
-  output_dir: ${data.dir}/IGTD
+  output_dir: ${data.dir}/IGTD_f21
   img_dir: ${igtd.output_dir}/data
 
 # Hyperparameter tuning
