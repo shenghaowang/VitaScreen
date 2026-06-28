@@ -46,39 +46,39 @@ name: catboost
 #   grow_policy: SymmetricTree
 
 # Dataset after feature engineering x customized class weights
-hyperparams:
-  iterations: 1000
-  verbose: 0
-  random_seed: 42
-  eval_metric: AUC
-  class_weights: [1, 3]
-  learning_rate: 0.0030289571362206863
-  max_depth: 3
-  subsample: 0.9075011371778876
-  colsample_bylevel: 0.8174504694100226
-  min_data_in_leaf: 84
-  l2_leaf_reg: 5.816440297371427
-  random_strength: 0.0369970391936222
-  bagging_temperature: 0.17302211015540436
-  border_count: 36
-  grow_policy: Depthwise
-
-# Dataset after feature engineering x ENN
 # hyperparams:
 #   iterations: 1000
 #   verbose: 0
 #   random_seed: 42
 #   eval_metric: AUC
-#   learning_rate: 0.00694944396903745
-#   max_depth: 4
-#   subsample: 0.8801440519915351
-#   colsample_bylevel: 0.5084557679423829
-#   min_data_in_leaf: 74
-#   l2_leaf_reg: 2.88277066767638
-#   random_strength: 0.6685460709607682
-#   bagging_temperature: 0.08507435368195809
-#   border_count: 94
-#   grow_policy: Lossguide
+#   class_weights: [1, 3]
+#   learning_rate: 0.0030289571362206863
+#   max_depth: 3
+#   subsample: 0.9075011371778876
+#   colsample_bylevel: 0.8174504694100226
+#   min_data_in_leaf: 84
+#   l2_leaf_reg: 5.816440297371427
+#   random_strength: 0.0369970391936222
+#   bagging_temperature: 0.17302211015540436
+#   border_count: 36
+#   grow_policy: Depthwise
+
+# Dataset after feature engineering x ENN
+hyperparams:
+  iterations: 1000
+  verbose: 0
+  random_seed: 42
+  eval_metric: AUC
+  learning_rate: 0.00694944396903745
+  max_depth: 4
+  subsample: 0.8801440519915351
+  colsample_bylevel: 0.5084557679423829
+  min_data_in_leaf: 74
+  l2_leaf_reg: 2.88277066767638
+  random_strength: 0.6685460709607682
+  bagging_temperature: 0.08507435368195809
+  border_count: 94
+  grow_policy: Lossguide
 
 # 15 selected features x customized class weights
 # hyperparams:

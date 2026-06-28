@@ -3,7 +3,8 @@ defaults:
 
 data:
   dir: data
-  file_path: ${data.dir}/cdcNormalDiabetic.csv
+  # file_path: ${data.dir}/cdcNormalDiabetic.csv
+  file_path: ${data.dir}/cdcNormalDiabeticFE1.csv
   target_col: Label
   # feature_cols:
   #   - Age
@@ -35,7 +36,7 @@ results:
     - macro
     - weighted
     - binary
-  model_name: mlp_f21_enn
+  model_name: cb_f21_enn_fe
   cv_path: results/${results.model_name}/cv_results.csv
   test_path: results/${results.model_name}/test_results.csv
   prob_path: results/${results.model_name}/prob.csv
