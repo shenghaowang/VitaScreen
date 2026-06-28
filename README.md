@@ -25,9 +25,9 @@ git clone https://github.com/your-username/VitaScreen.git
 cd VitaScreen
 ```
 
-2. **Create a virtual environment**
+2. **Create a virtual environment** (Python 3.13 required — Python 3.14 is incompatible with Hydra)
 ```bash
-python3 -m venv venv
+python3.13 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
