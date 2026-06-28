@@ -105,7 +105,10 @@ def main(cfg: DictConfig):
         case ModelType.CatBoost.value:
             trainer = EnsembleTreeTrainer(hyperparams=cfg.model.hyperparams)
             trainer.setup(data_cfg=cfg.data)
-            cv_results = trainer.cross_validate(enn=cfg.train.enn)
+            cv_results = trainer.cross_validate(
+                enn=cfg.train.enn,
+                model_name=cfg.results.model_name,
+            )
 
             logger.info("Evaluating the model on the test set ...")
             y_test, y_pred = trainer.evaluate()

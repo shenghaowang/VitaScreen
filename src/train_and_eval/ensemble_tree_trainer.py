@@ -59,13 +59,15 @@ class EnsembleTreeTrainer(BaseTrainer):
 
         return self.y[val_idx], y_preds
 
-    def cross_validate(self, enn: bool = False) -> pd.DataFrame:
+    def cross_validate(self, enn: bool = False, model_name: str = None) -> pd.DataFrame:
         """Train the ensemble tree model with cross validation.
 
         Parameters
         ----------
         enn : bool, optional
             Whether to apply Edited Nearest Neighbours resampling to training data in each fold, by default False
+        model_name : str, optional
+            Name of the model to save, by default None
         """
         best_f1_score = 0.0
         best_cv_metrics = None
@@ -112,6 +114,11 @@ class EnsembleTreeTrainer(BaseTrainer):
         for metric, value in best_cv_metrics.items():
             logger.info(f"Best Model {metric}: {value}")
 
+        # Export best model
+        if model_name is not None:
+            logger.info(f"Exporting best model to models/{model_name}.cbm")
+            self.export_model(output_path=Path(f"models/{model_name}.cbm"))
+
         return pd.DataFrame(cv_results)
 
     def evaluate(self):
@@ -151,3 +158,10 @@ class EnsembleTreeTrainer(BaseTrainer):
         all_probs = pd.concat(prob_dfs).sort_values(by="id")
         all_probs.to_csv(output_path, index=False)
         logger.info(f"Predicted probabilities exported to {output_path}")
+
+    def export_model(self, output_path: Path):
+        if self.best_model is None:
+            raise ValueError("No best model found. Please train the model first.")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        self.best_model.save_model(output_path, format="cbm")
+        logger.info(f"Model saved to {output_path}")

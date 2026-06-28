@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from catboost import CatBoostClassifier, Pool
 
 
@@ -15,3 +17,6 @@ class EnsembleTreeClassifier:
 
     def predict_proba(self, X):
         return self.model.predict_proba(X)
+
+    def save_model(self, fname: Path, format="cbm"):
+        self.model.save_model(fname, format=format)
