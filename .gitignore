@@ -180,3 +180,5 @@ lightning_logs/
 
 # Hydra outputs
 outputs/
+results/
+models/
